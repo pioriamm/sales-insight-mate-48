@@ -1,6 +1,33 @@
 import * as XLSX from 'xlsx';
 import type { SaleRow } from './salesTypes';
 
+function formatDate(val: any): string {
+  if (val == null || val === '') return '';
+  // If XLSX parsed it as a JS Date
+  if (val instanceof Date) {
+    const d = val;
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const yyyy = d.getFullYear();
+    const hh = String(d.getHours()).padStart(2, '0');
+    const min = String(d.getMinutes()).padStart(2, '0');
+    return `${dd}/${mm}/${yyyy} ${hh}:${min}`;
+  }
+  // If it's an Excel serial number
+  if (typeof val === 'number' && val > 25000) {
+    const d = XLSX.SSF.parse_date_code(val);
+    if (d) {
+      const dd = String(d.d).padStart(2, '0');
+      const mm = String(d.m).padStart(2, '0');
+      const yyyy = d.y;
+      const hh = String(d.H).padStart(2, '0');
+      const min = String(d.M).padStart(2, '0');
+      return `${dd}/${mm}/${yyyy} ${hh}:${min}`;
+    }
+  }
+  return String(val);
+}
+
 function parseNumber(val: any): number {
   if (val == null || val === '') return 0;
   if (typeof val === 'number') return val;
