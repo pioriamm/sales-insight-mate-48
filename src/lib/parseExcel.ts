@@ -49,7 +49,7 @@ export function parseExcelFile(file: File): Promise<SaleRow[]> {
         const sales: SaleRow[] = rows.map((r, i) => ({
           id: String(i),
           numero: String(r['N.º de venda'] ?? r['Nº de venda'] ?? r['N° de venda'] ?? ''),
-          data: String(r['Data da venda'] ?? ''),
+          data: formatDate(r['Data da venda']),
           estado: String(r['Estado'] ?? ''),
           unidade: parseNumber(r['Unid'] ?? r['Unidade'] ?? 0),
           receita: parseNumber(r['Receita']),
