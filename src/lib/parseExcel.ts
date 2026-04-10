@@ -42,9 +42,9 @@ export function parseExcelFile(file: File): Promise<SaleRow[]> {
     reader.onload = (e) => {
       try {
         const data = new Uint8Array(e.target?.result as ArrayBuffer);
-        const wb = XLSX.read(data, { type: 'array' });
+        const wb = XLSX.read(data, { type: 'array', cellDates: true });
         const ws = wb.Sheets[wb.SheetNames[0]];
-        const rows: any[] = XLSX.utils.sheet_to_json(ws, { defval: '' });
+        const rows: any[] = XLSX.utils.sheet_to_json(ws, { defval: '', raw: true });
 
         const sales: SaleRow[] = rows.map((r, i) => ({
           id: String(i),
