@@ -26,9 +26,9 @@ export function SalesTable({ sales, onUpdateRow }: SalesTableProps) {
               <th className="text-right px-3 py-3 font-semibold text-foreground whitespace-nowrap">Receita</th>
               <th className="text-right px-3 py-3 font-semibold text-foreground whitespace-nowrap">Tarifa</th>
               <th className="text-right px-3 py-3 font-semibold text-foreground whitespace-nowrap">Frete ML</th>
+              <th className="text-right px-3 py-3 font-semibold text-foreground whitespace-nowrap">Custo</th>
               <th className="text-right px-3 py-3 font-semibold text-foreground whitespace-nowrap">Total</th>
               <th className="text-left px-3 py-3 font-semibold text-foreground">Título</th>
-              <th className="text-right px-3 py-3 font-semibold text-foreground whitespace-nowrap">Custo</th>
               <th className="text-left px-3 py-3 font-semibold text-foreground">Observação</th>
             </tr>
           </thead>
@@ -46,8 +46,6 @@ export function SalesTable({ sales, onUpdateRow }: SalesTableProps) {
                 <td className="px-3 py-2 text-right whitespace-nowrap">{fmt(s.receita)}</td>
                 <td className="px-3 py-2 text-right text-destructive whitespace-nowrap">{fmt(s.tarifaVenda)}</td>
                 <td className="px-3 py-2 text-right text-destructive whitespace-nowrap">{s.freteML ? fmt(s.freteML) : '-'}</td>
-                <td className="px-3 py-2 text-right font-semibold whitespace-nowrap">{fmt(s.totalBRL)}</td>
-                <td className="px-3 py-2 text-xs max-w-[200px] truncate" title={s.titulo}>{s.titulo}</td>
                 <td className="px-3 py-2">
                   <input
                     type="number"
@@ -58,6 +56,8 @@ export function SalesTable({ sales, onUpdateRow }: SalesTableProps) {
                     placeholder="0,00"
                   />
                 </td>
+                <td className="px-3 py-2 text-right font-semibold whitespace-nowrap">{fmt(s.totalBRL)}</td>
+                <td className="px-3 py-2 text-xs max-w-[200px] truncate" title={s.titulo}>{s.titulo}</td>
                 <td className="px-3 py-2">
                   <input
                     type="text"
