@@ -2,6 +2,7 @@ import { useState, useMemo, useCallback } from 'react';
 import { FileUpload } from '@/components/FileUpload';
 import { SummaryCard } from '@/components/SummaryCard';
 import { SalesTable } from '@/components/SalesTable';
+import { SummaryChart } from '@/components/SummaryChart';
 import { parseExcelFile } from '@/lib/parseExcel';
 import { exportToExcel } from '@/lib/exportExcel';
 import { parseCostFile, findCostForTitle } from '@/lib/parseCostExcel';
@@ -130,6 +131,7 @@ const Index = () => {
         ) : (
           <>
             <SummaryCard summary={summary} onFieldChange={handleFieldChange} />
+            <SummaryChart summary={summary} />
             <SalesTable sales={sales} onUpdateRow={handleUpdateRow} />
           </>
         )}
