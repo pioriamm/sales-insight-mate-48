@@ -62,6 +62,7 @@ function getKeywords(str: string): string[] {
 export function findCostForTitle(titulo: string, costItems: CostItem[]): number {
   if (!titulo || costItems.length === 0) return 0;
 
+  const normalizedTitle = normalize(titulo);
   const titleKeywords = getKeywords(titulo);
   if (titleKeywords.length === 0) return 0;
 
@@ -69,8 +70,14 @@ export function findCostForTitle(titulo: string, costItems: CostItem[]): number 
   let bestScore = 0;
 
   for (const item of costItems) {
+    const normalizedDesc = normalize(item.descricao);
     const descKeywords = getKeywords(item.descricao);
     if (descKeywords.length === 0) continue;
+
+    // Direct substring match (one contains the other)
+    if (normalizedTitle.includes(normalizedDesc) || normalizedDesc.includes(normalizedTitle)) {
+      return Math.abs(item.custo);
+    }
 
     let matches = 0;
     for (const kw of titleKeywords) {
@@ -81,7 +88,9 @@ export function findCostForTitle(titulo: string, costItems: CostItem[]): number 
 
     const score = matches / Math.max(titleKeywords.length, descKeywords.length);
 
-    if (score > bestScore && matches >= 2) {
+    // Lower threshold: require only 1 match for short descriptions, 2 for longer ones
+    const minMatches = descKeywords.length <= 3 ? 1 : 2;
+    if (score > bestScore && matches >= minMatches) {
       bestScore = score;
       bestMatch = item;
     }
