@@ -41,7 +41,8 @@ const Index = () => {
         if (custo > 0) console.log(`Match: "${row.titulo}" → custo=${custo}`);
         return { ...row, custo };
       });
-      setSales(withCost);
+      const sorted = [...withCost].sort((a, b) => (a.custo === 0 ? -1 : b.custo === 0 ? 1 : 0));
+      setSales(sorted);
     } catch (err) {
       console.error('Erro ao processar arquivo:', err);
     } finally {
