@@ -4,11 +4,14 @@ import { SummaryCard } from '@/components/SummaryCard';
 import { SalesTable } from '@/components/SalesTable';
 import { parseExcelFile } from '@/lib/parseExcel';
 import { exportToExcel } from '@/lib/exportExcel';
+import { parseCostFile, findCostForTitle } from '@/lib/parseCostExcel';
 import type { SaleRow, SummaryData } from '@/lib/salesTypes';
+import type { CostItem } from '@/lib/costTypes';
 import { Download, RotateCcw } from 'lucide-react';
 
 const Index = () => {
   const [sales, setSales] = useState<SaleRow[]>([]);
+  const [costItems, setCostItems] = useState<CostItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [manualFields, setManualFields] = useState({
     antecipacao: 0,
@@ -18,17 +21,31 @@ const Index = () => {
     pagina: 0,
   });
 
+  const handleCostFileSelect = useCallback(async (file: File) => {
+    try {
+      const items = await parseCostFile(file);
+      setCostItems(items);
+    } catch (err) {
+      console.error('Erro ao processar planilha de custos:', err);
+    }
+  }, []);
+
   const handleFileSelect = useCallback(async (file: File) => {
     setIsLoading(true);
     try {
       const parsed = await parseExcelFile(file);
-      setSales(parsed);
+      // Auto-fill cost from cost items
+      const withCost = parsed.map((row) => ({
+        ...row,
+        custo: findCostForTitle(row.titulo, costItems),
+      }));
+      setSales(withCost);
     } catch (err) {
       console.error('Erro ao processar arquivo:', err);
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [costItems]);
 
   const handleUpdateRow = useCallback((id: string, field: 'custo' | 'observacao', value: string | number) => {
     setSales((prev) =>
@@ -68,12 +85,12 @@ const Index = () => {
 
   const handleReset = useCallback(() => {
     setSales([]);
+    setCostItems([]);
     setManualFields({ antecipacao: 0, publicidade: 0, simples: 0, tarifasFull: 0, pagina: 0 });
   }, []);
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
       <header className="bg-card border-b border-border px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div>
@@ -103,7 +120,12 @@ const Index = () => {
 
       <main className="max-w-7xl mx-auto px-6 py-8 space-y-6">
         {sales.length === 0 ? (
-          <FileUpload onFileSelect={handleFileSelect} isLoading={isLoading} />
+          <FileUpload
+            onFileSelect={handleFileSelect}
+            onCostFileSelect={handleCostFileSelect}
+            isLoading={isLoading}
+            costLoaded={costItems.length > 0}
+          />
         ) : (
           <>
             <SummaryCard summary={summary} onFieldChange={handleFieldChange} />
