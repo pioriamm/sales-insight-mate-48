@@ -130,8 +130,8 @@ const Index = () => {
           />
         ) : (
           <>
-            <SummaryCard summary={summary} onFieldChange={handleFieldChange} />
             <SummaryChart summary={summary} />
+            <SummaryCard summary={summary} onFieldChange={handleFieldChange} />
             <SalesTable sales={sales} onUpdateRow={handleUpdateRow} />
           </>
         )}
