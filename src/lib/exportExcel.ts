@@ -36,8 +36,7 @@ export function exportToExcel(sales: SaleRow[], summary: SummaryData) {
   XLSX.utils.book_append_sheet(wb, ws2, 'Resumo');
 
   const now = new Date();
-  const mes = now.toLocaleString('pt-BR', { month: 'long' });
-  const mesCapitalized = mes.charAt(0).toUpperCase() + mes.slice(1);
+  const mes = String(now.getMonth() + 1).padStart(2, '0');
   const ano = now.getFullYear();
-  XLSX.writeFile(wb, `${mesCapitalized}-${ano}-Contabilidade.xlsx`);
+  XLSX.writeFile(wb, `${mes}-${ano}-Contabilidade.xlsx`);
 }
