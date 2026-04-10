@@ -34,11 +34,12 @@ const Index = () => {
     setIsLoading(true);
     try {
       const parsed = await parseExcelFile(file);
-      // Auto-fill cost from cost items
-      const withCost = parsed.map((row) => ({
-        ...row,
-        custo: findCostForTitle(row.titulo, costItems),
-      }));
+      console.log(`Parsed ${parsed.length} sales. Cost items available: ${costItems.length}`);
+      const withCost = parsed.map((row) => {
+        const custo = findCostForTitle(row.titulo, costItems);
+        if (custo > 0) console.log(`Match: "${row.titulo}" → custo=${custo}`);
+        return { ...row, custo };
+      });
       setSales(withCost);
     } catch (err) {
       console.error('Erro ao processar arquivo:', err);
