@@ -1,9 +1,14 @@
 import * as XLSX from 'xlsx';
 import type { SaleRow } from './salesTypes';
 
+const MONTHS: Record<string, string> = {
+  'janeiro': '01', 'fevereiro': '02', 'março': '03', 'abril': '04',
+  'maio': '05', 'junho': '06', 'julho': '07', 'agosto': '08',
+  'setembro': '09', 'outubro': '10', 'novembro': '11', 'dezembro': '12',
+};
+
 function formatDate(val: any): string {
   if (val == null || val === '') return '';
-  // If XLSX parsed it as a JS Date
   if (val instanceof Date) {
     const d = val;
     const dd = String(d.getDate()).padStart(2, '0');
@@ -13,7 +18,6 @@ function formatDate(val: any): string {
     const min = String(d.getMinutes()).padStart(2, '0');
     return `${dd}/${mm}/${yyyy} ${hh}:${min}`;
   }
-  // If it's an Excel serial number
   if (typeof val === 'number' && val > 25000) {
     const d = XLSX.SSF.parse_date_code(val);
     if (d) {
@@ -25,7 +29,19 @@ function formatDate(val: any): string {
       return `${dd}/${mm}/${yyyy} ${hh}:${min}`;
     }
   }
-  return String(val);
+  // Parse "5 de abril de 2026 21:05 hs." format
+  const str = String(val);
+  const match = str.match(/(\d{1,2})\s+de\s+(\w+)\s+de\s+(\d{4})\s+(\d{1,2}):(\d{2})/i);
+  if (match) {
+    const dd = match[1].padStart(2, '0');
+    const monthName = match[2].toLowerCase();
+    const mm = MONTHS[monthName] || '01';
+    const yyyy = match[3];
+    const hh = match[4].padStart(2, '0');
+    const min = match[5];
+    return `${dd}/${mm}/${yyyy} ${hh}:${min}`;
+  }
+  return str;
 }
 
 function parseNumber(val: any): number {
