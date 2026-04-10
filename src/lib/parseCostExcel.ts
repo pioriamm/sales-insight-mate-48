@@ -19,11 +19,22 @@ export function parseCostFile(file: File): Promise<CostItem[]> {
         const ws = wb.Sheets[wb.SheetNames[0]];
         const rows: any[] = XLSX.utils.sheet_to_json(ws, { defval: '' });
 
+        // Find column keys dynamically (handles encoding variations)
+        const firstRow = rows[0] || {};
+        const keys = Object.keys(firstRow);
+        const skuKey = keys.find((k) => k.toLowerCase().includes('sku')) || 'SKU';
+        const descKey = keys.find((k) => k.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').includes('descri')) || 'Descrição';
+        const custoKey = keys.find((k) => k.toLowerCase().includes('custo')) || 'Custo';
+
+        console.log('Cost file columns found:', { skuKey, descKey, custoKey, allKeys: keys });
+
         const items: CostItem[] = rows.map((r) => ({
-          sku: String(r['SKU'] ?? ''),
-          descricao: String(r['Descrição'] ?? r['Descricao'] ?? ''),
-          custo: parseNumber(r['Custo']),
+          sku: String(r[skuKey] ?? ''),
+          descricao: String(r[descKey] ?? ''),
+          custo: parseNumber(r[custoKey]),
         }));
+
+        console.log(`Loaded ${items.length} cost items. Sample:`, items.slice(0, 3));
 
         resolve(items);
       } catch (err) {
@@ -63,14 +74,14 @@ export function findCostForTitle(titulo: string, costItems: CostItem[]): number 
 
     let matches = 0;
     for (const kw of titleKeywords) {
-      if (descKeywords.some((dk) => dk.includes(kw) || kw.includes(dk))) {
+      if (descKeywords.some((dk) => dk === kw || (dk.length > 3 && kw.length > 3 && (dk.includes(kw) || kw.includes(dk))))) {
         matches++;
       }
     }
 
     const score = matches / Math.max(titleKeywords.length, descKeywords.length);
 
-    if (score > bestScore && matches >= 3) {
+    if (score > bestScore && matches >= 2) {
       bestScore = score;
       bestMatch = item;
     }
