@@ -8,9 +8,7 @@ import 'view/sales_dashboard_page.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Hive.initFlutter();
-
-  final controller = SalesController();
-  await controller.init();
+  await Hive.openBox<dynamic>(SalesController.costCatalogBoxName);
 
   runApp(
     ChangeNotifierProvider.value(
