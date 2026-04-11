@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
+
 import 'sales_controller.dart';
 import 'sales_parser.dart';
 
@@ -16,7 +17,6 @@ class SalesDashboardPage extends StatelessWidget {
         builder: (context, controller, _) {
           return Row(
             children: [
-              const _Sidebar(),
               Expanded(
                 child: Stack(
                   children: [
@@ -56,34 +56,6 @@ class SalesDashboardPage extends StatelessWidget {
             ],
           );
         },
-      ),
-    );
-  }
-}
-
-class _Sidebar extends StatelessWidget {
-  const _Sidebar();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 280,
-      color: const Color(0xFF0F4548),
-      child: Column(
-        children: [
-          const SizedBox(height: 30),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text('conciliadora', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
-            ),
-          ),
-          const SizedBox(height: 40),
-          _NavItem(icon: Icons.home_outlined, label: 'Pesquisa', active: true),
-          _NavItem(icon: Icons.groups_2_outlined, label: 'Sócios'),
-          _NavItem(icon: Icons.business_outlined, label: 'Empresas'),
-        ],
       ),
     );
   }
