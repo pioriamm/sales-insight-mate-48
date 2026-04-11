@@ -811,45 +811,6 @@ double _parseNumber(Object? value) {
   return parsed ?? 0;
 }
 
-double _parseMoney(Object? value) {
-  if (value == null) return 0;
-  if (value is num) {
-    final asDouble = value.toDouble();
-    if (value is int && value.abs() >= 1000) {
-      return asDouble / 100;
-    }
-    return asDouble;
-  }
-
-  final text = value.toString().trim();
-  if (text.isEmpty) return 0;
-
-  final parsed = _parseNumber(text);
-  final hasDecimalSeparator = text.contains(',') || text.contains('.');
-  if (hasDecimalSeparator) return parsed;
-
-  final digitsOnly = text.replaceAll(RegExp(r'[^0-9\-]'), '');
-  if (RegExp(r'^-?\d{3,}$').hasMatch(digitsOnly)) {
-    return parsed / 100;
-  }
-  return parsed;
-}
-
-int _parseUnit(Object? value) {
-  if (value == null) return 0;
-  if (value is num) return value.round();
-
-  final text = value.toString().trim();
-  if (text.isEmpty) return 0;
-
-  final direct = _parseNumber(text);
-  if (direct != 0) return direct.round();
-
-  final match = RegExp(r'\d+').firstMatch(text);
-  if (match == null) return 0;
-  return int.tryParse(match.group(0)!) ?? 0;
-}
-
 String _formatDate(String value) {
   final text = value.trim();
   if (text.isEmpty) return '';
