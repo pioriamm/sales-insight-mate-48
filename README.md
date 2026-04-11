@@ -1,3 +1,20 @@
-# Welcome to your Lovable project
+# Sales Insight Mate (Flutter Web)
 
-TODO: Document your project here
+Projeto mantido **somente em Flutter Web**.
+
+## Requisitos
+
+- Flutter SDK 3.3+
+
+## Executar
+
+```bash
+flutter pub get
+flutter run -d chrome
+```
+
+## Build
+
+```bash
+flutter build web
+```
