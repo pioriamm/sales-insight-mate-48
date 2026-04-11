@@ -32,9 +32,7 @@ class SalesDashboardPage extends StatelessWidget {
                           if (controller.sales.isEmpty)
                             _ImportPanel(controller: controller)
                           else ...[
-                            SizedBox(height: 280, child: SummaryChart(summary: controller.summary, currency: CurrencyFormatter())),
-                            const SizedBox(height: 12),
-                            SummaryCard(
+                            _SummarySection(
                               summary: controller.summary,
                               currency: CurrencyFormatter(),
                               onChange: controller.updateManualField,
@@ -57,6 +55,45 @@ class SalesDashboardPage extends StatelessWidget {
           );
         },
       ),
+    );
+  }
+}
+
+class _SummarySection extends StatelessWidget {
+  const _SummarySection({required this.summary, required this.currency, required this.onChange});
+
+  final SummaryData summary;
+  final CurrencyFormatter currency;
+  final void Function(String field, double value) onChange;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final sideBySide = constraints.maxWidth >= 980;
+        if (!sideBySide) {
+          return Column(
+            children: [
+              SizedBox(height: 280, child: SummaryChart(summary: summary, currency: currency)),
+              const SizedBox(height: 12),
+              SummaryCard(summary: summary, currency: currency, onChange: onChange),
+            ],
+          );
+        }
+
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: SummaryCard(summary: summary, currency: currency, onChange: onChange),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: SizedBox(height: 380, child: SummaryChart(summary: summary, currency: currency)),
+            ),
+          ],
+        );
+      },
     );
   }
 }
