@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'controller/sales_controller.dart';
-import 'view/sales_widgets.dart';
+import 'view/sales_dashboard_page.dart';
 
 void main() {
   runApp(
