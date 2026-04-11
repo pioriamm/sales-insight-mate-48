@@ -33,6 +33,36 @@ class SaleRow {
   final double custo;
   final String observacao;
 
+  Map<String, Object> toMap() => {
+        'id': id,
+        'numero': numero,
+        'data': data,
+        'estado': estado,
+        'unidade': unidade,
+        'receita': receita,
+        'tarifaVenda': tarifaVenda,
+        'freteML': freteML,
+        'totalBRL': totalBRL,
+        'titulo': titulo,
+        'custo': custo,
+        'observacao': observacao,
+      };
+
+  static SaleRow fromMap(Map<String, dynamic> map) => SaleRow(
+        id: map['id']?.toString() ?? '',
+        numero: map['numero']?.toString() ?? '',
+        data: map['data']?.toString() ?? '',
+        estado: map['estado']?.toString() ?? '',
+        unidade: (map['unidade'] as num?)?.toInt() ?? 0,
+        receita: (map['receita'] as num?)?.toDouble() ?? 0,
+        tarifaVenda: (map['tarifaVenda'] as num?)?.toDouble() ?? 0,
+        freteML: (map['freteML'] as num?)?.toDouble() ?? 0,
+        totalBRL: (map['totalBRL'] as num?)?.toDouble() ?? 0,
+        titulo: map['titulo']?.toString() ?? '',
+        custo: (map['custo'] as num?)?.toDouble() ?? 0,
+        observacao: map['observacao']?.toString() ?? '',
+      );
+
   SaleRow copyWith({double? custo, String? observacao}) => SaleRow(
         id: id,
         numero: numero,
@@ -77,6 +107,50 @@ class CostItem {
   final String sku;
   final String descricao;
   final double custo;
+
+  Map<String, Object> toMap() => {
+        'sku': sku,
+        'descricao': descricao,
+        'custo': custo,
+      };
+
+  static CostItem fromMap(Map<String, dynamic> map) => CostItem(
+        sku: map['sku']?.toString() ?? '',
+        descricao: map['descricao']?.toString() ?? '',
+        custo: (map['custo'] as num?)?.toDouble() ?? 0,
+      );
+}
+
+List<Map<String, Object>> parseSalesFileDto(Uint8List bytes) =>
+    parseSalesFile(bytes).map((row) => row.toMap()).toList(growable: false);
+
+List<Map<String, Object>> parseCostFileDto(Uint8List bytes) =>
+    parseCostFile(bytes).map((item) => item.toMap()).toList(growable: false);
+
+List<Map<String, Object>> applyCostsAndSortSalesDto(Map<String, dynamic> payload) {
+  final salesDto = (payload['sales'] as List<dynamic>? ?? const [])
+      .whereType<Map<dynamic, dynamic>>()
+      .map((row) => Map<String, dynamic>.from(row))
+      .toList(growable: false);
+  final costs = (payload['costs'] as List<dynamic>? ?? const [])
+      .whereType<Map<dynamic, dynamic>>()
+      .map((item) => CostItem.fromMap(Map<String, dynamic>.from(item)))
+      .toList(growable: false);
+
+  final withCosts = salesDto
+      .map((row) {
+        final sale = SaleRow.fromMap(row);
+        return sale.copyWith(custo: findCostForTitle(sale.titulo, costs));
+      })
+      .toList(growable: false);
+
+  withCosts.sort((a, b) {
+    if (a.custo == 0 && b.custo > 0) return -1;
+    if (b.custo == 0 && a.custo > 0) return 1;
+    return 0;
+  });
+
+  return withCosts.map((row) => row.toMap()).toList(growable: false);
 }
 
 List<SaleRow> parseSalesFile(Uint8List bytes) {

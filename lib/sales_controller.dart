@@ -1,4 +1,5 @@
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -48,7 +49,8 @@ class SalesController extends ChangeNotifier {
 
     try {
       await Future<void>.delayed(const Duration(milliseconds: 80));
-      costItems = parseCostFile(bytes);
+      final parsedDto = await compute(parseCostFileDto, bytes);
+      costItems = parsedDto.map((item) => CostItem.fromMap(Map<String, dynamic>.from(item))).toList(growable: false);
       notifyListeners();
     } catch (_) {
       if (!context.mounted) return;
@@ -71,16 +73,13 @@ class SalesController extends ChangeNotifier {
 
     try {
       await Future<void>.delayed(const Duration(milliseconds: 80));
-      final parsed = parseSalesFile(bytes);
-      final withCosts = parsed.map((row) => row.copyWith(custo: findCostForTitle(row.titulo, costItems))).toList();
-
-      withCosts.sort((a, b) {
-        if (a.custo == 0 && b.custo > 0) return -1;
-        if (b.custo == 0 && a.custo > 0) return 1;
-        return 0;
-      });
-
-      sales = withCosts;
+      final parsedDto = await compute(parseSalesFileDto, bytes);
+      final payload = {
+        'sales': parsedDto,
+        'costs': costItems.map((item) => item.toMap()).toList(growable: false),
+      };
+      final withCostsDto = await compute(applyCostsAndSortSalesDto, payload);
+      sales = withCostsDto.map((row) => SaleRow.fromMap(Map<String, dynamic>.from(row))).toList(growable: false);
       notifyListeners();
     } catch (_) {
       if (!context.mounted) return;
