@@ -79,7 +79,7 @@ class _SummarySection extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final sideBySide = constraints.maxWidth >= 980;
+        final sideBySide = constraints.maxWidth >= 1180;
         if (!sideBySide) {
           return Column(
             children: [
@@ -327,12 +327,19 @@ class SummaryChart extends StatelessWidget {
                     bottomTitles: AxisTitles(
                       sideTitles: SideTitles(
                         showTitles: true,
+                        interval: 1,
+                        reservedSize: 34,
                         getTitlesWidget: (value, meta) {
+                          if (value % 1 != 0) return const SizedBox.shrink();
                           final i = value.toInt();
                           if (i < 0 || i >= _labels.length) return const SizedBox.shrink();
                           return SideTitleWidget(
                             meta: meta,
-                            child: Text(_labels[i], style: const TextStyle(fontSize: 10)),
+                            child: Text(
+                              _labels[i],
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(fontSize: 10),
+                            ),
                           );
                         },
                       ),
