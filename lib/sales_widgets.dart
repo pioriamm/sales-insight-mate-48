@@ -46,12 +46,17 @@ class SalesDashboardPage extends StatelessWidget {
                         ],
                       ),
                     ),
-                    if (controller.isLoadingAny)
-                      _LoadingOverlay(
-                        progress: controller.loadingProgress,
-                        percent: controller.loadingPercent,
-                        message: controller.loadingMessage,
-                      ),
+                    AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 220),
+                      child: controller.isLoadingAny
+                          ? _LoadingOverlay(
+                              key: const ValueKey('loading-overlay'),
+                              progress: controller.loadingProgress,
+                              percent: controller.loadingPercent,
+                              message: controller.loadingMessage,
+                            )
+                          : const SizedBox.shrink(key: ValueKey('loading-hidden')),
+                    ),
                   ],
                 ),
               ),
@@ -234,6 +239,7 @@ class _ImportPanel extends StatelessWidget {
 
 class _LoadingOverlay extends StatelessWidget {
   const _LoadingOverlay({
+    super.key,
     required this.progress,
     required this.percent,
     required this.message,
@@ -246,29 +252,31 @@ class _LoadingOverlay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Positioned.fill(
-      child: ColoredBox(
-        color: Colors.black.withOpacity(0.2),
-        child: Center(
-          child: Card(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: SizedBox(
-                width: 280,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(message, style: const TextStyle(fontSize: 18)),
-                    const SizedBox(height: 12),
-                    LinearProgressIndicator(value: progress),
-                    const SizedBox(height: 8),
-                    Text('$percent% concluído'),
-                  ],
+      child: Stack(
+        children: [
+          ModalBarrier(color: Colors.black.withOpacity(0.28), dismissible: false),
+          Center(
+            child: Card(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: SizedBox(
+                  width: 280,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(message, style: const TextStyle(fontSize: 18)),
+                      const SizedBox(height: 12),
+                      LinearProgressIndicator(value: progress),
+                      const SizedBox(height: 8),
+                      Text('$percent% concluído'),
+                    ],
+                  ),
                 ),
               ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }
