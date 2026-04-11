@@ -64,13 +64,22 @@ class _SalesHomePageState extends State<SalesHomePage> {
     if (bytes == null) return;
 
     setState(() => isLoadingCost = true);
-    await Future<void>.delayed(const Duration(milliseconds: 80));
+    try {
+      await Future<void>.delayed(const Duration(milliseconds: 80));
 
-    final parsed = parseCostFile(bytes);
-    setState(() {
-      costItems = parsed;
-      isLoadingCost = false;
-    });
+      final parsed = parseCostFile(bytes);
+      setState(() {
+        costItems = parsed;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Não foi possível importar a planilha de custos. Verifique o arquivo.')),
+      );
+    } finally {
+      if (!mounted) return;
+      setState(() => isLoadingCost = false);
+    }
   }
 
   Future<void> _pickSalesFile() async {
@@ -84,23 +93,32 @@ class _SalesHomePageState extends State<SalesHomePage> {
     if (bytes == null) return;
 
     setState(() => isLoadingSales = true);
-    await Future<void>.delayed(const Duration(milliseconds: 80));
+    try {
+      await Future<void>.delayed(const Duration(milliseconds: 80));
 
-    final parsed = parseSalesFile(bytes);
-    final withCosts = parsed
-        .map((row) => row.copyWith(custo: findCostForTitle(row.titulo, costItems)))
-        .toList();
+      final parsed = parseSalesFile(bytes);
+      final withCosts = parsed
+          .map((row) => row.copyWith(custo: findCostForTitle(row.titulo, costItems)))
+          .toList();
 
-    withCosts.sort((a, b) {
-      if (a.custo == 0 && b.custo > 0) return -1;
-      if (b.custo == 0 && a.custo > 0) return 1;
-      return 0;
-    });
+      withCosts.sort((a, b) {
+        if (a.custo == 0 && b.custo > 0) return -1;
+        if (b.custo == 0 && a.custo > 0) return 1;
+        return 0;
+      });
 
-    setState(() {
-      sales = withCosts;
-      isLoadingSales = false;
-    });
+      setState(() {
+        sales = withCosts;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Não foi possível importar a planilha de vendas. Verifique o arquivo.')),
+      );
+    } finally {
+      if (!mounted) return;
+      setState(() => isLoadingSales = false);
+    }
   }
 
   SummaryData get summary {
