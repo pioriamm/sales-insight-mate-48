@@ -1,13 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
 
 import 'controller/sales_controller.dart';
 import 'view/sales_dashboard_page.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Hive.initFlutter();
+
+  final controller = SalesController();
+  await controller.init();
+
   runApp(
-    ChangeNotifierProvider(
-      create: (_) => SalesController(),
+    ChangeNotifierProvider.value(
+      value: controller,
       child: const SalesInsightApp(),
     ),
   );
