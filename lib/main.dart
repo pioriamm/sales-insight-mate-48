@@ -453,13 +453,13 @@ class SalesTable extends StatelessWidget {
             rows: List.generate(sales.length, (index) {
               final s = sales[index];
               return DataRow(cells: [
-                DataCell(Text(s.numero)),
-                DataCell(Text(s.data)),
-                DataCell(Text(s.estado)),
-                DataCell(Text(s.unidade.toString())),
-                DataCell(Text(currency.format(s.receita))),
-                DataCell(Text(currency.format(s.tarifaVenda))),
-                DataCell(Text(currency.format(s.freteML))),
+                DataCell(SelectableText(s.numero)),
+                DataCell(SelectableText(s.data)),
+                DataCell(SelectableText(s.estado)),
+                DataCell(SelectableText(s.unidade.toString())),
+                DataCell(SelectableText(currency.format(s.receita))),
+                DataCell(SelectableText(currency.format(s.tarifaVenda))),
+                DataCell(SelectableText(currency.format(s.freteML))),
                 DataCell(SizedBox(
                   width: 100,
                   child: TextFormField(
@@ -468,8 +468,8 @@ class SalesTable extends StatelessWidget {
                     decoration: const InputDecoration(hintText: '0,00', isDense: true, border: OutlineInputBorder()),
                   ),
                 )),
-                DataCell(Text(currency.format(s.totalBRL))),
-                DataCell(SizedBox(width: 240, child: Text(s.titulo, overflow: TextOverflow.ellipsis))),
+                DataCell(SelectableText(currency.format(s.totalBRL))),
+                DataCell(SizedBox(width: 240, child: SelectableText(s.titulo, maxLines: 1))),
                 DataCell(SizedBox(
                   width: 140,
                   child: TextFormField(
@@ -602,6 +602,7 @@ List<SaleRow> parseSalesFile(Uint8List bytes) {
   final iTitulo = idx('Título do anúncio', 'Titulo do anúncio');
 
   String valueAt(List<ex.Data?> row, int i) => i >= 0 && i < row.length ? (row[i]?.value ?? '').toString() : '';
+  Object? rawAt(List<ex.Data?> row, int i) => i >= 0 && i < row.length ? row[i]?.value : null;
 
   final sales = <SaleRow>[];
   for (var i = 1; i < rows.length; i++) {
@@ -613,11 +614,11 @@ List<SaleRow> parseSalesFile(Uint8List bytes) {
       numero: valueAt(row, iNumero),
       data: _formatDate(valueAt(row, iData)),
       estado: valueAt(row, iEstado),
-      unidade: _parseNumber(valueAt(row, iUnid)).round(),
-      receita: _parseNumber(valueAt(row, iReceita)),
-      tarifaVenda: _parseNumber(valueAt(row, iTarifa)),
-      freteML: _parseNumber(valueAt(row, iFrete)),
-      totalBRL: _parseNumber(valueAt(row, iTotal)),
+      unidade: _parseUnit(rawAt(row, iUnid)),
+      receita: _parseMoney(rawAt(row, iReceita)),
+      tarifaVenda: _parseMoney(rawAt(row, iTarifa)),
+      freteML: _parseMoney(rawAt(row, iFrete)),
+      totalBRL: _parseMoney(rawAt(row, iTotal)),
       titulo: valueAt(row, iTitulo),
     ));
   }
