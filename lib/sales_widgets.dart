@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
-
 import 'sales_controller.dart';
 import 'sales_parser.dart';
 
@@ -47,7 +46,12 @@ class SalesDashboardPage extends StatelessWidget {
                         ],
                       ),
                     ),
-                    if (controller.isLoadingAny) const _LoadingOverlay(),
+                    if (controller.isLoadingAny)
+                      _LoadingOverlay(
+                        progress: controller.loadingProgress,
+                        percent: controller.loadingPercent,
+                        message: controller.loadingMessage,
+                      ),
                   ],
                 ),
               ),
@@ -229,18 +233,39 @@ class _ImportPanel extends StatelessWidget {
 }
 
 class _LoadingOverlay extends StatelessWidget {
-  const _LoadingOverlay();
+  const _LoadingOverlay({
+    required this.progress,
+    required this.percent,
+    required this.message,
+  });
+
+  final double progress;
+  final int percent;
+  final String message;
 
   @override
   Widget build(BuildContext context) {
     return Positioned.fill(
       child: ColoredBox(
         color: Colors.black.withOpacity(0.2),
-        child: const Center(
+        child: Center(
           child: Card(
             child: Padding(
-              padding: EdgeInsets.all(24),
-              child: Column(mainAxisSize: MainAxisSize.min, children: [CircularProgressIndicator(), SizedBox(height: 12), Text('Importando planilha...')]),
+              padding: const EdgeInsets.all(24),
+              child: SizedBox(
+                width: 280,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(message, style: const TextStyle(fontSize: 18)),
+                    const SizedBox(height: 12),
+                    LinearProgressIndicator(value: progress),
+                    const SizedBox(height: 8),
+                    Text('$percent% concluído'),
+                  ],
+                ),
+              ),
             ),
           ),
         ),
@@ -274,12 +299,13 @@ class SummaryChart extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Gráfico Financeiro', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const Text('Gráfico de Linha por Segmentação', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             Expanded(
-              child: BarChart(
-                BarChartData(
-                  gridData: const FlGridData(show: false),
+              child: LineChart(
+                LineChartData(
+                  minY: 0,
+                  gridData: FlGridData(show: true, drawVerticalLine: false, horizontalInterval: _getHorizontalInterval(values)),
                   titlesData: FlTitlesData(
                     leftTitles: AxisTitles(
                       sideTitles: SideTitles(
@@ -290,16 +316,48 @@ class SummaryChart extends StatelessWidget {
                     ),
                     rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
                     topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                    bottomTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                    bottomTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        getTitlesWidget: (value, meta) {
+                          final i = value.toInt();
+                          if (i < 0 || i >= _labels.length) return const SizedBox.shrink();
+                          return SideTitleWidget(
+                            meta: meta,
+                            child: Text(_labels[i], style: const TextStyle(fontSize: 10)),
+                          );
+                        },
+                      ),
+                    ),
                   ),
-                  barGroups: List.generate(values.length, (i) {
-                    return BarChartGroupData(
-                      x: i,
-                      barRods: [
-                        BarChartRodData(toY: values[i].abs(), color: i == values.length - 1 ? Colors.indigo : Colors.indigo.shade200, width: 16),
-                      ],
-                    );
-                  }),
+                  lineTouchData: LineTouchData(
+                    touchTooltipData: LineTouchTooltipData(
+                      getTooltipItems: (spots) => spots
+                          .map(
+                            (spot) => LineTooltipItem(
+                              '${_labels[spot.x.toInt()]}\n${currency.format(values[spot.x.toInt()])}',
+                              const TextStyle(color: Colors.white),
+                            ),
+                          )
+                          .toList(),
+                    ),
+                  ),
+                  lineBarsData: [
+                    LineChartBarData(
+                      spots: List.generate(
+                        values.length,
+                        (i) => FlSpot(i.toDouble(), values[i].abs()),
+                      ),
+                      isCurved: true,
+                      color: Colors.indigo,
+                      dotData: const FlDotData(show: true),
+                      barWidth: 3,
+                      belowBarData: BarAreaData(
+                        show: true,
+                        color: Colors.indigo.withOpacity(0.12),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -380,12 +438,23 @@ class SalesTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final source = _SalesDataSource(
+      sales: sales,
+      currency: currency,
+      onUpdateRow: onUpdateRow,
+    );
+
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(8),
+        padding: const EdgeInsets.all(12),
         child: SingleChildScrollView(
           scrollDirection: Axis.horizontal,
-          child: DataTable(
+          child: PaginatedDataTable(
+            showCheckboxColumn: false,
+            headingRowHeight: 44,
+            dataRowMinHeight: 52,
+            rowsPerPage: 25,
+            availableRowsPerPage: const [10, 25, 50, 100],
             columns: const [
               DataColumn(label: Text('N.º Venda')),
               DataColumn(label: Text('Data')),
@@ -399,41 +468,79 @@ class SalesTable extends StatelessWidget {
               DataColumn(label: Text('Título')),
               DataColumn(label: Text('Observação')),
             ],
-            rows: List.generate(sales.length, (index) {
-              final s = sales[index];
-              return DataRow(cells: [
-                DataCell(SelectableText(s.numero)),
-                DataCell(SelectableText(s.data)),
-                DataCell(SelectableText(s.estado)),
-                DataCell(SelectableText(s.unidade.toString())),
-                DataCell(SelectableText(currency.format(s.receita))),
-                DataCell(SelectableText(currency.format(s.tarifaVenda))),
-                DataCell(SelectableText(currency.format(s.freteML))),
-                DataCell(SizedBox(
-                  width: 100,
-                  child: TextFormField(
-                    initialValue: s.custo == 0 ? '' : s.custo.toStringAsFixed(2),
-                    onFieldSubmitted: (text) => onUpdateRow(index, double.tryParse(text.replaceAll(',', '.')) ?? 0, null),
-                    decoration: const InputDecoration(hintText: '0,00', isDense: true, border: OutlineInputBorder()),
-                  ),
-                )),
-                DataCell(SelectableText(currency.format(s.totalBRL))),
-                DataCell(SizedBox(width: 240, child: SelectableText(s.titulo, maxLines: 1))),
-                DataCell(SizedBox(
-                  width: 140,
-                  child: TextFormField(
-                    initialValue: s.observacao,
-                    onFieldSubmitted: (text) => onUpdateRow(index, null, text),
-                    decoration: const InputDecoration(hintText: 'Obs...', isDense: true, border: OutlineInputBorder()),
-                  ),
-                )),
-              ]);
-            }),
+            source: source,
           ),
         ),
       ),
     );
   }
+}
+
+class _SalesDataSource extends DataTableSource {
+  _SalesDataSource({
+    required this.sales,
+    required this.currency,
+    required this.onUpdateRow,
+  });
+
+  final List<SaleRow> sales;
+  final CurrencyFormatter currency;
+  final void Function(int index, double? cost, String? note) onUpdateRow;
+
+  @override
+  DataRow? getRow(int index) {
+    if (index < 0 || index >= sales.length) return null;
+    final s = sales[index];
+    return DataRow.byIndex(
+      index: index,
+      cells: [
+        DataCell(Text(s.numero)),
+        DataCell(Text(s.data)),
+        DataCell(Text(s.estado)),
+        DataCell(Text(s.unidade.toString())),
+        DataCell(Text(currency.format(s.receita))),
+        DataCell(Text(currency.format(s.tarifaVenda))),
+        DataCell(Text(currency.format(s.freteML))),
+        DataCell(SizedBox(
+          width: 100,
+          child: TextFormField(
+            initialValue: s.custo == 0 ? '' : s.custo.toStringAsFixed(2),
+            onFieldSubmitted: (text) => onUpdateRow(index, double.tryParse(text.replaceAll(',', '.')) ?? 0, null),
+            decoration: const InputDecoration(hintText: '0,00', isDense: true, border: OutlineInputBorder()),
+          ),
+        )),
+        DataCell(Text(currency.format(s.totalBRL))),
+        DataCell(SizedBox(width: 240, child: Text(s.titulo, maxLines: 1, overflow: TextOverflow.ellipsis))),
+        DataCell(SizedBox(
+          width: 140,
+          child: TextFormField(
+            initialValue: s.observacao,
+            onFieldSubmitted: (text) => onUpdateRow(index, null, text),
+            decoration: const InputDecoration(hintText: 'Obs...', isDense: true, border: OutlineInputBorder()),
+          ),
+        )),
+      ],
+    );
+  }
+
+  @override
+  bool get isRowCountApproximate => false;
+
+  @override
+  int get rowCount => sales.length;
+
+  @override
+  int get selectedRowCount => 0;
+}
+
+const _labels = ['Venda', 'Peças', 'Antec.', 'Publi.', 'Simples', 'Tar. Full', 'Página', 'Total'];
+
+double _getHorizontalInterval(List<double> values) {
+  final maxAbs = values.map((value) => value.abs()).fold<double>(0, (max, value) => value > max ? value : max);
+  if (maxAbs <= 1000) return 250;
+  if (maxAbs <= 5000) return 1000;
+  if (maxAbs <= 50000) return 5000;
+  return maxAbs / 5;
 }
 
 class CurrencyFormatter {
