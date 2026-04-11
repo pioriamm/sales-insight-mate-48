@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
-import 'sales_controller.dart';
-import 'sales_parser.dart';
+import '../controller/sales_controller.dart';
+import '../models/sales_parser.dart';
 
 class SalesDashboardPage extends StatelessWidget {
   const SalesDashboardPage({super.key});

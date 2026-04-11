@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import 'sales_controller.dart';
-import 'sales_widgets.dart';
+import 'controller/sales_controller.dart';
+import 'view/sales_widgets.dart';
 
 void main() {
   runApp(

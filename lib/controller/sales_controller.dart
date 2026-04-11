@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'dart:async';
 
-import 'sales_parser.dart';
+import '../models/sales_parser.dart';
 
 class SalesController extends ChangeNotifier {
   List<SaleRow> sales = [];
