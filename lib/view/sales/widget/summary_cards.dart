@@ -24,7 +24,7 @@ class SummaryCards extends StatelessWidget {
           child: SummaryItem(
             title: 'Vendas Brutas',
             value: summary.vendaLiquida,
-            subtitle: 'Saldo',
+            subtitle: 'Valor',
             rightWidget: Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
@@ -46,9 +46,17 @@ class SummaryCards extends StatelessWidget {
         const SizedBox(width: 16),
         Expanded(
           child: SummaryItem(
+            title: 'Despesas Adicionais',
+            value: summary.despesasAdicionais,
+            subtitle: 'Valor',
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: SummaryItem(
             title: 'Custos das Vendas',
             value: summary.custoPecas,
-            subtitle: 'Saldo',
+            subtitle: 'Valor',
           ),
         ),
         const SizedBox(width: 16),

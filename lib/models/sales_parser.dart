@@ -88,6 +88,7 @@ class SummaryData {
     required this.simples,
     required this.tarifasFull,
     required this.pagina,
+    required this.despesasAdicionais,
     required this.total,
   });
 
@@ -98,6 +99,7 @@ class SummaryData {
   final double simples;
   final double tarifasFull;
   final double pagina;
+  final double despesasAdicionais;
   final double total;
 }
 
@@ -250,14 +252,23 @@ List<CostItem> parseCostFile(Uint8List bytes) {
   return items;
 }
 
-Uint8List buildExportFile(List<SaleRow> sales, SummaryData summary) {
+Uint8List buildExportFile(
+    List<SaleRow> sales,
+    SummaryData summary,
+    Map<String, double> despesas, // ✅ NOVO
+    ) {
   final excel = ex.Excel.createExcel();
+
   final defaultSheet = excel.getDefaultSheet();
   if (defaultSheet != null) {
     excel.delete(defaultSheet);
   }
 
+  /// =========================
+  /// 🔹 ABA VENDAS
+  /// =========================
   final detail = excel['Vendas'];
+
   detail.appendRow([
     ex.TextCellValue('N.º de venda'),
     ex.TextCellValue('Data da venda'),
@@ -288,16 +299,26 @@ Uint8List buildExportFile(List<SaleRow> sales, SummaryData summary) {
     ]);
   }
 
+  /// =========================
+  /// 🔹 ABA RESUMO
+  /// =========================
   final resumo = excel['Resumo'];
-  void append(String descricao, double valor) => resumo.appendRow([ex.TextCellValue(descricao), ex.DoubleCellValue(valor)]);
+
+  void append(String descricao, double valor) {
+    resumo.appendRow([
+      ex.TextCellValue(descricao),
+      ex.DoubleCellValue(valor),
+    ]);
+  }
 
   append('VENDA LÍQUIDA', summary.vendaLiquida);
   append('CUSTO PEÇAS', summary.custoPecas);
-  append('ANTECIPAÇÃO', summary.antecipacao);
-  append('PUBLICIDADE', summary.publicidade);
-  append('SIMPLES', summary.simples);
-  append('TARIFAS FULL', summary.tarifasFull);
-  append('PÁGINA', summary.pagina);
+
+  /// 🔹 DESPESAS DINÂMICAS
+  despesas.forEach((key, value) {
+    append(key.toUpperCase(), value);
+  });
+
   append('TOTAL', summary.total);
 
   return Uint8List.fromList(excel.encode() ?? []);

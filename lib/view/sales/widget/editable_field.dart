@@ -68,7 +68,7 @@ class _EditableFieldState extends State<EditableField> {
             decoration: const InputDecoration(
               hintText: '0,00',
               isDense: true,
-              border: OutlineInputBorder(),
+              border: InputBorder.none,
             ),
           ),
         ),

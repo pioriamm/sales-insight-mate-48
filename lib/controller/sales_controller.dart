@@ -24,6 +24,10 @@ class SalesController extends ChangeNotifier {
   String loadingMessage = 'Importando planilha...';
   Timer? _loadingTicker;
 
+  /// =========================
+  /// 🔹 LOADING HELPERS
+  /// =========================
+
   bool get isLoadingAny => isLoadingCost || isLoadingSales;
 
   int get loadingPercent => (loadingProgress * 100).clamp(0, 100).round();
@@ -41,29 +45,80 @@ class SalesController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void _startSmoothProgress({required bool cost, required bool sales, required String message}) {
+  void _startSmoothProgress({
+    required bool cost,
+    required bool sales,
+    required String message,
+  }) {
     _loadingTicker?.cancel();
-    _setLoadingState(cost: cost, sales: sales, progress: 0.05, message: message);
+
+    _setLoadingState(
+      cost: cost,
+      sales: sales,
+      progress: 0.05,
+      message: message,
+    );
+
     _loadingTicker = Timer.periodic(const Duration(milliseconds: 120), (timer) {
       final next = (loadingProgress + 0.02).clamp(0.05, 0.92);
+
       if (next >= 0.92) {
         timer.cancel();
       }
-      _setLoadingState(cost: cost, sales: sales, progress: next, message: loadingMessage);
+
+      _setLoadingState(
+        cost: cost,
+        sales: sales,
+        progress: next,
+        message: loadingMessage,
+      );
     });
   }
 
-  Future<void> _finishLoading({required bool cost, required bool sales, required String message}) async {
+  Future<void> _finishLoading({
+    required bool cost,
+    required bool sales,
+    required String message,
+  }) async {
     _loadingTicker?.cancel();
-    _setLoadingState(cost: cost, sales: sales, progress: 1, message: message);
+
+    _setLoadingState(
+      cost: cost,
+      sales: sales,
+      progress: 1,
+      message: message,
+    );
+
     await Future<void>.delayed(const Duration(milliseconds: 500));
-    _setLoadingState(cost: false, sales: false, progress: 0, message: 'Importando planilha...');
+
+    _setLoadingState(
+      cost: false,
+      sales: false,
+      progress: 0,
+      message: 'Importando planilha...',
+    );
   }
+
+  /// =========================
+  /// 🔹 NOVO: DESPESAS ADICIONAIS
+  /// =========================
+
+  double get despesasAdicionais {
+    return costItems.fold<double>(0, (sum, item) => sum + item.custo,);
+  }
+
+  /// =========================
+  /// 🔹 SUMMARY
+  /// =========================
 
   SummaryData get summary {
     final vendaLiquida = sales.fold<double>(0, (sum, s) => sum + s.totalBRL);
+
     final custoPecas = sales.fold<double>(0, (sum, s) => sum + s.custo);
-    final total = vendaLiquida - custoPecas - manualFields.values.fold<double>(0, (sum, value) => sum + value);
+
+    final custosManuais = manualFields.values.fold<double>(0, (sum, v) => sum + v);
+
+    final total = vendaLiquida - custoPecas - custosManuais;
 
     return SummaryData(
       vendaLiquida: vendaLiquida,
@@ -73,16 +128,30 @@ class SalesController extends ChangeNotifier {
       simples: manualFields['simples'] ?? 0,
       tarifasFull: manualFields['tarifasFull'] ?? 0,
       pagina: manualFields['pagina'] ?? 0,
+      despesasAdicionais: custosManuais,
       total: total,
     );
   }
 
+  /// =========================
+  /// 🔹 IMPORTAÇÃO
+  /// =========================
+
   Future<void> pickCostFile(BuildContext context) async {
-    final result = await FilePicker.platform.pickFiles(type: FileType.custom, allowedExtensions: ['xlsx', 'xls'], withData: true);
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['xlsx', 'xls'],
+      withData: true,
+    );
+
     final bytes = result?.files.single.bytes;
     if (bytes == null) return;
 
-    _startSmoothProgress(cost: true, sales: false, message: 'Lendo planilha de custos...');
+    _startSmoothProgress(
+      cost: true,
+      sales: false,
+      message: 'Lendo planilha de custos...',
+    );
 
     try {
       _setLoadingState(
@@ -91,25 +160,51 @@ class SalesController extends ChangeNotifier {
         progress: loadingProgress,
         message: 'Processando planilha de custos...',
       );
+
       final parsedDto = await compute(parseCostFileDto, bytes);
+
       costItems = parsedDto.map((item) => CostItem.fromMap(Map<String, dynamic>.from(item))).toList(growable: false);
-      await _finishLoading(cost: true, sales: false, message: 'Custos importados com sucesso.');
+
+      await _finishLoading(
+        cost: true,
+        sales: false,
+        message: 'Custos importados com sucesso.',
+      );
     } catch (_) {
       _loadingTicker?.cancel();
+
       if (!context.mounted) return;
+
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Não foi possível importar a planilha de custos. Verifique o arquivo.')),
+        const SnackBar(
+          content: Text('Não foi possível importar a planilha de custos.'),
+        ),
       );
-      _setLoadingState(cost: false, sales: false, progress: 0, message: 'Importando planilha...');
+
+      _setLoadingState(
+        cost: false,
+        sales: false,
+        progress: 0,
+        message: 'Importando planilha...',
+      );
     }
   }
 
   Future<void> pickSalesFile(BuildContext context) async {
-    final result = await FilePicker.platform.pickFiles(type: FileType.custom, allowedExtensions: ['xlsx', 'xls'], withData: true);
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['xlsx', 'xls'],
+      withData: true,
+    );
+
     final bytes = result?.files.single.bytes;
     if (bytes == null) return;
 
-    _startSmoothProgress(cost: false, sales: true, message: 'Lendo planilha de vendas...');
+    _startSmoothProgress(
+      cost: false,
+      sales: true,
+      message: 'Lendo planilha de vendas...',
+    );
 
     try {
       _setLoadingState(
@@ -118,29 +213,53 @@ class SalesController extends ChangeNotifier {
         progress: loadingProgress,
         message: 'Convertendo planilha de vendas...',
       );
+
       final parsedDto = await compute(parseSalesFileDto, bytes);
+
       final payload = {
         'sales': parsedDto,
         'costs': costItems.map((item) => item.toMap()).toList(growable: false),
       };
+
       _setLoadingState(
         cost: false,
         sales: true,
         progress: loadingProgress,
-        message: 'Aplicando custos e organizando dados...',
+        message: 'Aplicando custos...',
       );
+
       final withCostsDto = await compute(applyCostsAndSortSalesDto, payload);
+
       sales = withCostsDto.map((row) => SaleRow.fromMap(Map<String, dynamic>.from(row))).toList(growable: false);
-      await _finishLoading(cost: false, sales: true, message: 'Vendas importadas com sucesso.');
+
+      await _finishLoading(
+        cost: false,
+        sales: true,
+        message: 'Vendas importadas com sucesso.',
+      );
     } catch (_) {
       _loadingTicker?.cancel();
+
       if (!context.mounted) return;
+
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Não foi possível importar a planilha de vendas. Verifique o arquivo.')),
+        const SnackBar(
+          content: Text('Não foi possível importar a planilha de vendas.'),
+        ),
       );
-      _setLoadingState(cost: false, sales: false, progress: 0, message: 'Importando planilha...');
+
+      _setLoadingState(
+        cost: false,
+        sales: false,
+        progress: 0,
+        message: 'Importando planilha...',
+      );
     }
   }
+
+  /// =========================
+  /// 🔹 UPDATES
+  /// =========================
 
   void updateManualField(String key, double value) {
     manualFields[key] = value;
@@ -148,16 +267,25 @@ class SalesController extends ChangeNotifier {
   }
 
   void updateRow(int index, double? cost, String? note) {
-    sales[index] = sales[index].copyWith(custo: cost ?? sales[index].custo, observacao: note ?? sales[index].observacao);
+    sales[index] = sales[index].copyWith(
+      custo: cost ?? sales[index].custo,
+      observacao: note ?? sales[index].observacao,
+    );
     notifyListeners();
   }
+
+  /// =========================
+  /// 🔹 RESET
+  /// =========================
 
   void resetAll() {
     sales = [];
     costItems = [];
+
     for (final key in manualFields.keys) {
       manualFields[key] = 0;
     }
+
     notifyListeners();
   }
 
@@ -167,8 +295,17 @@ class SalesController extends ChangeNotifier {
     super.dispose();
   }
 
+  /// =========================
+  /// 🔹 EXPORTAÇÃO
+  /// =========================
+
   Future<void> exportExcel() async {
-    final bytes = buildExportFile(sales, summary);
+    final bytes = buildExportFile(
+      sales,
+      summary,
+      manualFields,
+    );
+
     await FilePicker.platform.saveFile(
       dialogTitle: 'Salvar planilha',
       fileName: '${DateFormat('MM-yyyy').format(DateTime.now())}-Contabilidade.xlsx',

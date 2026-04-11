@@ -4,8 +4,8 @@ import 'package:sales_insight_mate/view/sales/widget/summary_cards.dart';
 import '../../../models/sales_parser.dart';
 import '../utils/currency_formatter.dart';
 
-class SummarySection extends StatelessWidget {
-  const SummarySection({
+class CardResumo extends StatelessWidget {
+  const CardResumo({
     required this.summary,
     required this.currency,
     required this.salesCount,
