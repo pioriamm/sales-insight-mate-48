@@ -48,7 +48,10 @@ class _SalesHomePageState extends State<SalesHomePage> {
     'pagina': 0,
   };
 
-  bool isLoading = false;
+  bool isLoadingCost = false;
+  bool isLoadingSales = false;
+
+  bool get isLoadingAny => isLoadingCost || isLoadingSales;
 
   Future<void> _pickCostFile() async {
     final result = await FilePicker.platform.pickFiles(
@@ -60,8 +63,13 @@ class _SalesHomePageState extends State<SalesHomePage> {
     final bytes = result?.files.single.bytes;
     if (bytes == null) return;
 
+    setState(() => isLoadingCost = true);
+    await Future<void>.delayed(const Duration(milliseconds: 80));
+
+    final parsed = parseCostFile(bytes);
     setState(() {
-      costItems = parseCostFile(bytes);
+      costItems = parsed;
+      isLoadingCost = false;
     });
   }
 
@@ -75,7 +83,8 @@ class _SalesHomePageState extends State<SalesHomePage> {
     final bytes = result?.files.single.bytes;
     if (bytes == null) return;
 
-    setState(() => isLoading = true);
+    setState(() => isLoadingSales = true);
+    await Future<void>.delayed(const Duration(milliseconds: 80));
 
     final parsed = parseSalesFile(bytes);
     final withCosts = parsed
@@ -90,7 +99,7 @@ class _SalesHomePageState extends State<SalesHomePage> {
 
     setState(() {
       sales = withCosts;
-      isLoading = false;
+      isLoadingSales = false;
     });
   }
 
@@ -155,10 +164,12 @@ class _SalesHomePageState extends State<SalesHomePage> {
           ],
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: sales.isEmpty
-            ? Column(
+      body: Stack(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: sales.isEmpty
+                ? Column(
                 children: [
                   Card(
                     child: ListTile(
@@ -167,9 +178,11 @@ class _SalesHomePageState extends State<SalesHomePage> {
                       title: Text(costItems.isNotEmpty
                           ? '✓ Planilha de custos carregada'
                           : '1. Importe a planilha de custos (opcional)'),
-                      subtitle: const Text('Usada para preencher custo automaticamente.'),
+                      subtitle: Text(
+                        isLoadingCost ? 'Lendo arquivo de custos...' : 'Usada para preencher custo automaticamente.',
+                      ),
                       trailing: ElevatedButton(
-                        onPressed: _pickCostFile,
+                        onPressed: isLoadingAny ? null : _pickCostFile,
                         child: const Text('Selecionar'),
                       ),
                     ),
@@ -178,17 +191,17 @@ class _SalesHomePageState extends State<SalesHomePage> {
                   Card(
                     child: ListTile(
                       leading: const Icon(Icons.upload_file, color: Colors.indigo),
-                      title: Text(isLoading ? 'Processando...' : '2. Importe a planilha de vendas'),
+                      title: Text(isLoadingSales ? 'Processando...' : '2. Importe a planilha de vendas'),
                       subtitle: const Text('Arquivo .xlsx ou .xls'),
                       trailing: FilledButton(
-                        onPressed: isLoading ? null : _pickSalesFile,
+                        onPressed: isLoadingAny ? null : _pickSalesFile,
                         child: const Text('Selecionar'),
                       ),
                     ),
                   ),
                 ],
               )
-            : ListView(
+                : ListView(
                 children: [
                   SizedBox(height: 280, child: SummaryChart(summary: sum, currency: _currency)),
                   const SizedBox(height: 12),
@@ -216,6 +229,37 @@ class _SalesHomePageState extends State<SalesHomePage> {
                   ),
                 ],
               ),
+          ),
+          if (isLoadingAny)
+            Positioned.fill(
+              child: ColoredBox(
+                color: Colors.black.withOpacity(0.12),
+                child: Center(
+                  child: Container(
+                    width: 300,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surface,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const CircularProgressIndicator(),
+                        const SizedBox(height: 12),
+                        Text(
+                          isLoadingCost ? 'Importando planilha de custos...' : 'Importando planilha de vendas...',
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 12),
+                        const LinearProgressIndicator(),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -656,12 +700,26 @@ double findCostForTitle(String title, List<CostItem> items) {
   if (title.trim().isEmpty || items.isEmpty) return 0;
 
   final normalizedTitle = _normalize(title);
+  final compactTitle = normalizedTitle.replaceAll(' ', '');
   final titleKeywords = _keywords(normalizedTitle);
+
+  for (final item in items) {
+    final normalizedSku = _normalize(item.sku).replaceAll(' ', '');
+    if (normalizedSku.isEmpty) continue;
+    if (compactTitle.contains(normalizedSku)) {
+      return item.custo.abs();
+    }
+  }
 
   CostItem? best;
   var bestScore = 0.0;
 
   for (final item in items) {
+    final sku = _normalize(item.sku).replaceAll(' ', '');
+    if (sku.isNotEmpty && (compactTitle.contains(sku) || sku.contains(compactTitle))) {
+      return item.custo.abs();
+    }
+
     final desc = _normalize(item.descricao);
     if (desc.isEmpty) continue;
 
