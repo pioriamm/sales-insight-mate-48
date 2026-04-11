@@ -15,7 +15,7 @@ class SalesTable extends StatelessWidget {
 
   final List<SaleRow> sales;
   final CurrencyFormatter currency;
-  final void Function(int, double?, String?) onUpdateRow;
+  final Future<void> Function(int, double?, String?) onUpdateRow;
 
   @override
   Widget build(BuildContext context) {

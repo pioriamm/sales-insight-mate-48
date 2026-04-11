@@ -11,7 +11,7 @@ class SalesDataSource extends DataTableSource {
 
   final List<SaleRow> sales;
   final CurrencyFormatter currency;
-  final void Function(int, double?, String?) onUpdateRow;
+  final Future<void> Function(int, double?, String?) onUpdateRow;
 
   @override
   DataRow? getRow(int index) {
