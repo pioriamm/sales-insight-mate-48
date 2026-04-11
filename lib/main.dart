@@ -651,10 +651,22 @@ List<CostItem> parseCostFile(Uint8List bytes) {
   for (var i = 1; i < rows.length; i++) {
     final row = rows[i];
     if (row.every((c) => c == null || c.value == null || c.value.toString().trim().isEmpty)) continue;
+    double cost = _parseNumber(valueAt(row, iCost));
+
+    if (cost == 0) {
+      for (var col = max(iDesc + 1, 0); col < row.length; col++) {
+        final parsed = _parseNumber(row[col]?.value);
+        if (parsed != 0) {
+          cost = parsed;
+          break;
+        }
+      }
+    }
+
     items.add(CostItem(
       sku: valueAt(row, iSku),
       descricao: valueAt(row, iDesc),
-      custo: _parseNumber(valueAt(row, iCost)),
+      custo: cost,
     ));
   }
 
@@ -783,8 +795,19 @@ double _parseNumber(Object? value) {
   if (value == null) return 0;
   final text = value.toString().trim();
   if (text.isEmpty) return 0;
-  final normalized = text.replaceAll('.', '').replaceAll(',', '.').replaceAll(RegExp(r'\s'), '');
-  return double.tryParse(normalized) ?? 0;
+
+  final direct = value is num ? value.toDouble() : double.tryParse(text);
+  if (direct != null) return direct;
+
+  final cleaned = text
+      .replaceAll(RegExp(r'[^0-9,\.\-]'), '')
+      .replaceAll(RegExp(r'(?<=\d)\.(?=\d{3}(\D|$))'), '')
+      .replaceAll(',', '.');
+
+  final matches = RegExp(r'-?\d+(\.\d+)?').allMatches(cleaned).toList();
+  if (matches.isEmpty) return 0;
+  final parsed = double.tryParse(matches.last.group(0)!);
+  return parsed ?? 0;
 }
 
 String _formatDate(String value) {
