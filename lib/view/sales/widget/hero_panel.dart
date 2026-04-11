@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../controller/sales_controller.dart';
+import '../../cost_catalog_page.dart';
 
 class HeroPanel extends StatelessWidget {
   HeroPanel({required this.controller});
@@ -49,6 +50,22 @@ class HeroPanel extends StatelessWidget {
                       ? null
                       : () => controller.pickSalesFile(context),
                   child: const Text('Importar vendas'),
+                ),
+              ),
+
+
+              const SizedBox(width: 12),
+
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const CostCatalogPage(),
+                      ),
+                    );
+                  },
+                  child: const Text('Banco Hive'),
                 ),
               ),
 
