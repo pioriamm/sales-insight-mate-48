@@ -1,8 +1,10 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
-
+import 'package:firebase_core/firebase_core.dart';
 import 'controller/sales_controller.dart';
+import 'firebase_options.dart';
 import 'view/sales_dashboard_page.dart';
 
 Future<void> main() async {
