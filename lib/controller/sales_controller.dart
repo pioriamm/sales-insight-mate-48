@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:hive/hive.dart';
 import 'package:intl/intl.dart';
 
 import '../data/cost_catalog_repository.dart';
@@ -11,6 +12,12 @@ import '../models/cost_catalog_item.dart';
 import '../models/sales_parser.dart';
 
 class SalesController extends ChangeNotifier {
+  static const String costCatalogBoxName = 'cost_catalog';
+
+  SalesController() {
+    loadCostCatalog();
+  }
+
   List<SaleRow> sales = [];
   List<CostItem> costItems = [];
   List<CostCatalogItem> catalogItems = [];
@@ -41,9 +48,76 @@ class SalesController extends ChangeNotifier {
       ..sort((a, b) => a.descricao.toLowerCase().compareTo(b.descricao.toLowerCase()));
   }
 
-  bool get isLoadingAny => isLoadingCost || isLoadingSales;
+  Future<void> _reloadCatalog() async {
+    catalogItems = await _catalogRepository.getAll()
+      ..sort((a, b) => a.descricao.toLowerCase().compareTo(b.descricao.toLowerCase()));
+  }
 
+  bool get isLoadingAny => isLoadingCost || isLoadingSales;
   int get loadingPercent => (loadingProgress * 100).clamp(0, 100).round();
+
+  Future<void> loadCostCatalog() async {
+    final items = _catalogBox.values
+        .whereType<Map>()
+        .map((raw) => HiveCostItem.fromMap(Map<String, dynamic>.from(raw)))
+        .where((item) => item.descricao.trim().isNotEmpty)
+        .toList()
+      ..sort((a, b) => a.descricao.toLowerCase().compareTo(b.descricao.toLowerCase()));
+
+    catalogItems = items;
+    notifyListeners();
+  }
+
+  Future<void> saveCatalogItem({
+    String? id,
+    required String descricao,
+    required double custo,
+  }) async {
+    final trimmed = descricao.trim();
+    if (trimmed.isEmpty) return;
+
+    final itemId = id ?? DateTime.now().microsecondsSinceEpoch.toString();
+    final item = HiveCostItem(id: itemId, descricao: trimmed, custo: custo);
+    await _catalogBox.put(itemId, item.toMap());
+    await loadCostCatalog();
+  }
+
+  Future<void> importCatalogFromJson(String jsonText) async {
+    final decoded = jsonDecode(jsonText);
+    final List<dynamic> data = decoded is List ? decoded : [decoded];
+
+    for (final raw in data) {
+      if (raw is! Map) continue;
+      final mapped = Map<String, dynamic>.from(raw);
+      final descricao = mapped['descricao']?.toString() ?? '';
+      final custo = (mapped['custo'] as num?)?.toDouble() ?? 0;
+      final id = mapped['id']?.toString();
+      await saveCatalogItem(id: id, descricao: descricao, custo: custo);
+    }
+  }
+
+  double get despesasAdicionais {
+    return costItems.fold<double>(0, (sum, item) => sum + item.custo);
+  }
+
+  SummaryData get summary {
+    final vendaLiquida = sales.fold<double>(0, (sum, s) => sum + s.totalBRL);
+    final custoPecas = sales.fold<double>(0, (sum, s) => sum + s.custo);
+    final custosManuais = manualFields.values.fold<double>(0, (sum, v) => sum + v);
+    final total = vendaLiquida - custoPecas - custosManuais;
+
+    return SummaryData(
+      vendaLiquida: vendaLiquida,
+      custoPecas: custoPecas,
+      antecipacao: manualFields['antecipacao'] ?? 0,
+      publicidade: manualFields['publicidade'] ?? 0,
+      simples: manualFields['simples'] ?? 0,
+      tarifasFull: manualFields['tarifasFull'] ?? 0,
+      pagina: manualFields['pagina'] ?? 0,
+      despesasAdicionais: custosManuais,
+      total: total,
+    );
+  }
 
   void _setLoadingState({
     required bool cost,
@@ -64,27 +138,12 @@ class SalesController extends ChangeNotifier {
     required String message,
   }) {
     _loadingTicker?.cancel();
-
-    _setLoadingState(
-      cost: cost,
-      sales: sales,
-      progress: 0.05,
-      message: message,
-    );
+    _setLoadingState(cost: cost, sales: sales, progress: 0.05, message: message);
 
     _loadingTicker = Timer.periodic(const Duration(milliseconds: 120), (timer) {
       final next = (loadingProgress + 0.02).clamp(0.05, 0.92);
-
-      if (next >= 0.92) {
-        timer.cancel();
-      }
-
-      _setLoadingState(
-        cost: cost,
-        sales: sales,
-        progress: next,
-        message: loadingMessage,
-      );
+      if (next >= 0.92) timer.cancel();
+      _setLoadingState(cost: cost, sales: sales, progress: next, message: loadingMessage);
     });
   }
 
@@ -94,22 +153,9 @@ class SalesController extends ChangeNotifier {
     required String message,
   }) async {
     _loadingTicker?.cancel();
-
-    _setLoadingState(
-      cost: cost,
-      sales: sales,
-      progress: 1,
-      message: message,
-    );
-
+    _setLoadingState(cost: cost, sales: sales, progress: 1, message: message);
     await Future<void>.delayed(const Duration(milliseconds: 500));
-
-    _setLoadingState(
-      cost: false,
-      sales: false,
-      progress: 0,
-      message: 'Importando planilha...',
-    );
+    _setLoadingState(cost: false, sales: false, progress: 0, message: 'Importando planilha...');
   }
 
   double get despesasAdicionais {
@@ -148,19 +194,10 @@ class SalesController extends ChangeNotifier {
     final bytes = result?.files.single.bytes;
     if (bytes == null) return;
 
-    _startSmoothProgress(
-      cost: true,
-      sales: false,
-      message: 'Lendo planilha de custos...',
-    );
+    _startSmoothProgress(cost: true, sales: false, message: 'Lendo planilha de custos...');
 
     try {
-      _setLoadingState(
-        cost: true,
-        sales: false,
-        progress: loadingProgress,
-        message: 'Processando planilha de custos...',
-      );
+      _setLoadingState(cost: true, sales: false, progress: loadingProgress, message: 'Processando planilha de custos...');
 
       final parsedDto = await compute(parseCostFileDto, bytes);
 
@@ -168,28 +205,12 @@ class SalesController extends ChangeNotifier {
           .map((item) => CostItem.fromMap(Map<String, dynamic>.from(item)))
           .toList(growable: false);
 
-      await _finishLoading(
-        cost: true,
-        sales: false,
-        message: 'Custos importados com sucesso.',
-      );
+      await _finishLoading(cost: true, sales: false, message: 'Custos importados com sucesso.');
     } catch (_) {
       _loadingTicker?.cancel();
-
       if (!context.mounted) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Não foi possível importar a planilha de custos.'),
-        ),
-      );
-
-      _setLoadingState(
-        cost: false,
-        sales: false,
-        progress: 0,
-        message: 'Importando planilha...',
-      );
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Não foi possível importar a planilha de custos.')));
+      _setLoadingState(cost: false, sales: false, progress: 0, message: 'Importando planilha...');
     }
   }
 
@@ -203,20 +224,10 @@ class SalesController extends ChangeNotifier {
     final bytes = result?.files.single.bytes;
     if (bytes == null) return;
 
-    _startSmoothProgress(
-      cost: false,
-      sales: true,
-      message: 'Lendo planilha de vendas...',
-    );
+    _startSmoothProgress(cost: false, sales: true, message: 'Lendo planilha de vendas...');
 
     try {
-      _setLoadingState(
-        cost: false,
-        sales: true,
-        progress: loadingProgress,
-        message: 'Convertendo planilha de vendas...',
-      );
-
+      _setLoadingState(cost: false, sales: true, progress: loadingProgress, message: 'Convertendo planilha de vendas...');
       final parsedDto = await compute(parseSalesFileDto, bytes);
       final parsedSales = parsedDto
           .map((row) => SaleRow.fromMap(Map<String, dynamic>.from(row)))
@@ -238,21 +249,9 @@ class SalesController extends ChangeNotifier {
       );
     } catch (_) {
       _loadingTicker?.cancel();
-
       if (!context.mounted) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Não foi possível importar a planilha de vendas.'),
-        ),
-      );
-
-      _setLoadingState(
-        cost: false,
-        sales: false,
-        progress: 0,
-        message: 'Importando planilha...',
-      );
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Não foi possível importar a planilha de vendas.')));
+      _setLoadingState(cost: false, sales: false, progress: 0, message: 'Importando planilha...');
     }
   }
 
@@ -273,13 +272,11 @@ class SalesController extends ChangeNotifier {
     if (cost != null && nextCost > 0) {
       final found = await _catalogRepository.findByDescription(current.titulo);
       if (found == null) {
-        await _catalogRepository.upsert(
-          CostCatalogItem(
-            id: _catalogRepository.nextId(),
-            descricao: current.titulo,
-            custo: nextCost,
-          ),
-        );
+        await _catalogRepository.upsert(CostCatalogItem(
+          id: _catalogRepository.nextId(),
+          descricao: current.titulo,
+          custo: nextCost,
+        ));
         await _reloadCatalog();
       }
     }
@@ -343,15 +340,13 @@ class SalesController extends ChangeNotifier {
 
     return rawList
         .whereType<Map>()
-        .map(
-          (item) => CostCatalogItem(
-            id: item['id']?.toString().trim().isNotEmpty == true
-                ? item['id'].toString()
-                : _catalogRepository.nextId(),
-            descricao: item['descricao']?.toString() ?? '',
-            custo: (item['custo'] as num?)?.toDouble() ?? 0,
-          ),
-        )
+        .map((item) => CostCatalogItem(
+              id: item['id']?.toString().trim().isNotEmpty == true
+                  ? item['id'].toString()
+                  : _catalogRepository.nextId(),
+              descricao: item['descricao']?.toString() ?? '',
+              custo: (item['custo'] as num?)?.toDouble() ?? 0,
+            ))
         .where((item) => item.descricao.trim().isNotEmpty)
         .toList(growable: false);
   }
@@ -359,11 +354,9 @@ class SalesController extends ChangeNotifier {
   void resetAll() {
     sales = [];
     costItems = [];
-
     for (final key in manualFields.keys) {
       manualFields[key] = 0;
     }
-
     notifyListeners();
   }
 
@@ -374,11 +367,7 @@ class SalesController extends ChangeNotifier {
   }
 
   Future<void> exportExcel() async {
-    final bytes = buildExportFile(
-      sales,
-      summary,
-      manualFields,
-    );
+    final bytes = buildExportFile(sales, summary, manualFields);
 
     await FilePicker.platform.saveFile(
       dialogTitle: 'Salvar planilha',
