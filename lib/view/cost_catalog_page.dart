@@ -27,6 +27,7 @@ class CostCatalogPage extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.all(12),
                 child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     ElevatedButton.icon(
                       onPressed: () async {
@@ -47,6 +48,10 @@ class CostCatalogPage extends StatelessWidget {
                       onPressed: sortedItems.isEmpty
                           ? null
                           : () => _confirmClearCatalog(context),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.red,
+                        side: const BorderSide(color: Colors.red),
+                      ),
                       icon: const Icon(Icons.delete_sweep_outlined),
                       label: const Text('Limpar base'),
                     ),
@@ -63,12 +68,21 @@ class CostCatalogPage extends StatelessWidget {
                     separatorBuilder: (_, __) => const Divider(height: 1),
                     itemBuilder: (context, index) {
                       final item = sortedItems[index];
+                      final TextStyle? itemTextStyle =
+                          Theme.of(context).textTheme.titleMedium;
+
                       return ListTile(
-                        title: Text(item.descricao),
+                        title: Text(
+                          item.descricao,
+                          style: itemTextStyle,
+                        ),
                         trailing: Wrap(
                           spacing: 8,
                           children: [
-                            Text('R\$ ${item.custo.toStringAsFixed(2)}'),
+                            Text(
+                              'R\$ ${item.custo.toStringAsFixed(2)}',
+                              style: itemTextStyle,
+                            ),
                             IconButton(
                               icon: const Icon(Icons.edit),
                               onPressed: () => _openEditDialog(context, item: item),
