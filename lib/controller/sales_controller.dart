@@ -261,6 +261,12 @@ class SalesController extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> clearCatalog() async {
+    await _catalogRepository.clearAll();
+    await _reloadCatalog();
+    notifyListeners();
+  }
+
   Future<int> importCatalogFromJson([String? jsonText]) async {
     String? payload = jsonText;
 

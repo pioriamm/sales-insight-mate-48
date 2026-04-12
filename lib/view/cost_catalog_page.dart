@@ -42,6 +42,14 @@ class CostCatalogPage extends StatelessWidget {
                       icon: const Icon(Icons.file_upload_outlined),
                       label: const Text('Importar JSON'),
                     ),
+                    const SizedBox(width: 8),
+                    OutlinedButton.icon(
+                      onPressed: sortedItems.isEmpty
+                          ? null
+                          : () => _confirmClearCatalog(context),
+                      icon: const Icon(Icons.delete_sweep_outlined),
+                      label: const Text('Limpar base'),
+                    ),
                   ],
                 ),
               ),
@@ -65,6 +73,10 @@ class CostCatalogPage extends StatelessWidget {
                               icon: const Icon(Icons.edit),
                               onPressed: () => _openEditDialog(context, item: item),
                             ),
+                            IconButton(
+                              icon: const Icon(Icons.delete_outline),
+                              onPressed: () => _confirmDeleteItem(context, item),
+                            ),
                           ],
                         ),
                       );
@@ -78,8 +90,73 @@ class CostCatalogPage extends StatelessWidget {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _openEditDialog(context),
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        foregroundColor: Colors.white,
+        shape: const CircleBorder(),
         child: const Icon(Icons.add),
       ),
+    );
+  }
+
+  Future<void> _confirmDeleteItem(BuildContext context, CostCatalogItem item) async {
+    final bool? shouldDelete = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Excluir item'),
+          content: Text('Deseja excluir "${item.descricao}" da base de custos?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Excluir'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (shouldDelete != true || !context.mounted) return;
+
+    await context.read<SalesController>().deleteCatalogItem(item.id);
+    if (!context.mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Item excluído com sucesso.')),
+    );
+  }
+
+  Future<void> _confirmClearCatalog(BuildContext context) async {
+    final bool? shouldClear = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Limpar base de custos'),
+          content: const Text('Deseja remover todos os itens do banco de custos?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Limpar base'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (shouldClear != true || !context.mounted) return;
+
+    await context.read<SalesController>().clearCatalog();
+    if (!context.mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Base de custos limpa com sucesso.')),
     );
   }
 
