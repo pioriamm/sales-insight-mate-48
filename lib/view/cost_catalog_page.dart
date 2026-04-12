@@ -58,10 +58,11 @@ class CostCatalogPage extends StatelessWidget {
                   ],
                 ),
               ),
+              const SizedBox(height: 110),
               Expanded(
                 child: Padding(
                   padding: EdgeInsets.symmetric(
-                    horizontal: MediaQuery.sizeOf(context).width * 0.30,
+                    horizontal: MediaQuery.sizeOf(context).width * 0.20,
                   ),
                   child: ListView.separated(
                     itemCount: sortedItems.length,
@@ -73,7 +74,7 @@ class CostCatalogPage extends StatelessWidget {
 
                       return ListTile(
                         title: Text(
-                          item.descricao,
+                          item.descricao.toUpperCase(),
                           style: itemTextStyle,
                         ),
                         trailing: Wrap(
@@ -88,7 +89,7 @@ class CostCatalogPage extends StatelessWidget {
                               onPressed: () => _openEditDialog(context, item: item),
                             ),
                             IconButton(
-                              icon: const Icon(Icons.delete_outline),
+                              icon: const Icon(Icons.delete_outline, color: Colors.red,),
                               onPressed: () => _confirmDeleteItem(context, item),
                             ),
                           ],
