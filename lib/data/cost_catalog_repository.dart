@@ -1,42 +1,57 @@
-import 'package:hive_flutter/hive_flutter.dart';
+import 'package:firebase_database/firebase_database.dart';
 
 import '../models/cost_catalog_item.dart';
 
 class CostCatalogRepository {
-  static const String boxName = 'cost_catalog';
+  static const String collectionPath = 'cost_catalog';
 
-  late final Box<Map> _box;
+  final DatabaseReference _rootRef = FirebaseDatabase.instance.ref(collectionPath);
 
-  Future<void> init() async {
-    _box = await Hive.openBox<Map>(boxName);
-  }
+  Future<void> init() async {}
 
-  List<CostCatalogItem> getAll() {
-    return _box.values
-        .map((item) => CostCatalogItem.fromMap(item))
+  Future<List<CostCatalogItem>> getAll() async {
+    final snapshot = await _rootRef.get();
+    if (!snapshot.exists || snapshot.value == null) {
+      return const [];
+    }
+
+    final raw = snapshot.value;
+    if (raw is! Map) {
+      return const [];
+    }
+
+    return raw.entries
+        .where((entry) => entry.value is Map)
+        .map((entry) => CostCatalogItem.fromMap(Map<String, dynamic>.from(entry.value as Map)))
         .where((item) => item.descricao.trim().isNotEmpty)
         .toList(growable: false);
   }
 
   Future<void> upsert(CostCatalogItem item) async {
-    await _box.put(item.id, item.toMap());
+    await _rootRef.child(item.id).set(item.toMap());
   }
 
   Future<void> saveAll(List<CostCatalogItem> items) async {
+    final batch = <String, dynamic>{};
+
     for (final item in items) {
-      await upsert(item);
+      batch[item.id] = item.toMap();
     }
+
+    if (batch.isEmpty) return;
+
+    await _rootRef.update(batch);
   }
 
   Future<void> delete(String id) async {
-    await _box.delete(id);
+    await _rootRef.child(id).remove();
   }
 
-  CostCatalogItem? findByDescription(String description) {
+  Future<CostCatalogItem?> findByDescription(String description) async {
     final normalized = _normalize(description);
+    final all = await getAll();
 
-    for (final raw in _box.values) {
-      final item = CostCatalogItem.fromMap(raw);
+    for (final item in all) {
       if (_normalize(item.descricao) == normalized) {
         return item;
       }
@@ -46,8 +61,7 @@ class CostCatalogRepository {
   }
 
   String nextId() {
-    final now = DateTime.now().microsecondsSinceEpoch;
-    return now.toString();
+    return _rootRef.push().key ?? DateTime.now().microsecondsSinceEpoch.toString();
   }
 
   String _normalize(String value) {
