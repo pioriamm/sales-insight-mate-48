@@ -48,6 +48,11 @@ class SalesController extends ChangeNotifier {
       ..sort((a, b) => a.descricao.toLowerCase().compareTo(b.descricao.toLowerCase()));
   }
 
+  Future<void> _reloadCatalog() async {
+    catalogItems = await _catalogRepository.getAll()
+      ..sort((a, b) => a.descricao.toLowerCase().compareTo(b.descricao.toLowerCase()));
+  }
+
   bool get isLoadingAny => isLoadingCost || isLoadingSales;
   int get loadingPercent => (loadingProgress * 100).clamp(0, 100).round();
 
@@ -302,24 +307,38 @@ class SalesController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<int> importCatalogFromJson() async {
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: ['json'],
-      withData: true,
-    );
+  Future<int> importCatalogFromJson([String? jsonText]) async {
+    String? payload = jsonText;
 
-    final bytes = result?.files.single.bytes;
-    if (bytes == null) return 0;
+    if (payload == null) {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['json'],
+        withData: true,
+      );
 
-    final decoded = jsonDecode(utf8.decode(bytes));
+      final bytes = result?.files.single.bytes;
+      if (bytes == null) return 0;
+      payload = utf8.decode(bytes);
+    }
+
+    final parsed = _parseCatalogJson(payload);
+
+    await _catalogRepository.saveAll(parsed);
+    await _reloadCatalog();
+    notifyListeners();
+    return parsed.length;
+  }
+
+  List<CostCatalogItem> _parseCatalogJson(String jsonText) {
+    final decoded = jsonDecode(jsonText);
     final rawList = (decoded is List)
         ? decoded
         : (decoded is Map<String, dynamic> && decoded['items'] is List)
             ? decoded['items'] as List<dynamic>
             : <dynamic>[];
 
-    final parsed = rawList
+    return rawList
         .whereType<Map>()
         .map((item) => CostCatalogItem(
               id: item['id']?.toString().trim().isNotEmpty == true
@@ -330,11 +349,6 @@ class SalesController extends ChangeNotifier {
             ))
         .where((item) => item.descricao.trim().isNotEmpty)
         .toList(growable: false);
-
-    await _catalogRepository.saveAll(parsed);
-    await _reloadCatalog();
-    notifyListeners();
-    return parsed.length;
   }
 
   void resetAll() {
