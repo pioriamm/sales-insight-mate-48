@@ -47,6 +47,10 @@ class CostCatalogRepository {
     await _rootRef.child(id).remove();
   }
 
+  Future<void> clearAll() async {
+    await _rootRef.remove();
+  }
+
   Future<CostCatalogItem?> findByDescription(String description) async {
     final normalized = _normalize(description);
     final all = await getAll();
