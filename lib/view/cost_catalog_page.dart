@@ -1,47 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../controller/cost_catalog_page_controller.dart';
 import '../controller/sales_controller.dart';
 import '../models/cost_catalog_item.dart';
 
-class CostCatalogPage extends StatefulWidget {
+class CostCatalogPage extends StatelessWidget {
   const CostCatalogPage({super.key});
 
   @override
-  State<CostCatalogPage> createState() => _CostCatalogPageState();
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider(
+      create: (_) => CostCatalogPageController(),
+      child: const _CostCatalogPageView(),
+    );
+  }
 }
 
-class _CostCatalogPageState extends State<CostCatalogPage> {
-  static const int _itemsPerPage = 30;
-  final TextEditingController _searchController = TextEditingController();
-  String _searchQuery = '';
-  int _currentPage = 0;
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  void _goToPreviousPage() {
-    if (_currentPage == 0) return;
-    setState(() => _currentPage -= 1);
-  }
-
-  void _goToNextPage(int totalPages) {
-    if (_currentPage >= totalPages - 1) return;
-    setState(() => _currentPage += 1);
-  }
-
-  void _ensureCurrentPageIsValid(int totalPages) {
-    final int lastPageIndex = totalPages - 1;
-    if (_currentPage <= lastPageIndex) return;
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      setState(() => _currentPage = lastPageIndex);
-    });
-  }
+class _CostCatalogPageView extends StatelessWidget {
+  const _CostCatalogPageView();
 
   @override
   Widget build(BuildContext context) {
@@ -49,14 +26,10 @@ class _CostCatalogPageState extends State<CostCatalogPage> {
       appBar: AppBar(
         title: const Text('Banco de custos'),
       ),
-      body: Consumer<SalesController>(
-        builder: (context, controller, _) {
-          final sortedItems = [...controller.catalogItems]
-            ..sort(
-              (a, b) => a.descricao.toLowerCase().compareTo(
-                    b.descricao.toLowerCase(),
-                  ),
-            );
+      body: Consumer2<SalesController, CostCatalogPageController>(
+        builder: (context, salesController, pageController, _) {
+          final sortedItems = pageController.getSortedItems(salesController.catalogItems);
+          final pageData = pageController.getPageData(sortedItems);
 
           return Column(
             children: [
@@ -67,7 +40,7 @@ class _CostCatalogPageState extends State<CostCatalogPage> {
                   children: [
                     ElevatedButton.icon(
                       onPressed: () async {
-                        final int insertedCount = await controller.importCatalogFromJson();
+                        final int insertedCount = await salesController.importCatalogFromJson();
                         if (!context.mounted) return;
                         final String message = insertedCount == 1
                             ? '1 item importado do JSON.'
@@ -99,18 +72,21 @@ class _CostCatalogPageState extends State<CostCatalogPage> {
                   horizontal: MediaQuery.sizeOf(context).width * 0.20,
                 ),
                 child: TextField(
-                  controller: _searchController,
-                  decoration: const InputDecoration(
+                  controller: pageController.searchController,
+                  decoration: InputDecoration(
                     hintText: 'Pesquisar item da lista',
-                    prefixIcon: Icon(Icons.search),
-                    border: OutlineInputBorder(),
+                    prefixIcon: const Icon(Icons.search),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(50),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(50),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(50),
+                    ),
                   ),
-                  onChanged: (value) {
-                    setState(() {
-                      _searchQuery = value.trim().toLowerCase();
-                      _currentPage = 0;
-                    });
-                  },
+                  onChanged: pageController.onSearchChanged,
                 ),
               ),
               const SizedBox(height: 12),
@@ -119,7 +95,7 @@ class _CostCatalogPageState extends State<CostCatalogPage> {
                   padding: EdgeInsets.symmetric(
                     horizontal: MediaQuery.sizeOf(context).width * 0.20,
                   ),
-                  child: _buildCatalogList(context, sortedItems),
+                  child: _buildCatalogList(context, pageData, pageController),
                 ),
               ),
             ],
@@ -136,25 +112,12 @@ class _CostCatalogPageState extends State<CostCatalogPage> {
     );
   }
 
-  Widget _buildCatalogList(BuildContext context, List<CostCatalogItem> sortedItems) {
-    final filteredItems = sortedItems.where((item) {
-      if (_searchQuery.isEmpty) return true;
-      return item.descricao.toLowerCase().contains(_searchQuery);
-    }).toList();
-
-    final int totalPages = filteredItems.isEmpty
-        ? 1
-        : ((filteredItems.length - 1) ~/ _itemsPerPage) + 1;
-    _ensureCurrentPageIsValid(totalPages);
-
-    final int startIndex = _currentPage * _itemsPerPage;
-    final int endIndex = (startIndex + _itemsPerPage).clamp(
-      0,
-      filteredItems.length,
-    );
-    final pagedItems = filteredItems.sublist(startIndex, endIndex);
-
-    if (filteredItems.isEmpty) {
+  Widget _buildCatalogList(
+    BuildContext context,
+    CostCatalogPageData pageData,
+    CostCatalogPageController pageController,
+  ) {
+    if (pageData.filteredItems.isEmpty) {
       return const Center(
         child: Text('Nenhum item encontrado para a pesquisa informada.'),
       );
@@ -164,10 +127,10 @@ class _CostCatalogPageState extends State<CostCatalogPage> {
       children: [
         Expanded(
           child: ListView.separated(
-            itemCount: pagedItems.length,
+            itemCount: pageData.pagedItems.length,
             separatorBuilder: (_, __) => const Divider(height: 1),
             itemBuilder: (context, index) {
-              final item = pagedItems[index];
+              final item = pageData.pagedItems[index];
               final TextStyle? itemTextStyle = Theme.of(context).textTheme.titleMedium;
 
               return ListTile(
@@ -201,18 +164,18 @@ class _CostCatalogPageState extends State<CostCatalogPage> {
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
             Text(
-              'Página ${_currentPage + 1} de $totalPages • ${filteredItems.length} itens',
+              'Página ${pageData.currentPage + 1} de ${pageData.totalPages} • ${pageData.filteredItems.length} itens',
             ),
             const SizedBox(width: 8),
             IconButton(
-              onPressed: _currentPage == 0 ? null : _goToPreviousPage,
+              onPressed: pageData.currentPage == 0 ? null : pageController.goToPreviousPage,
               icon: const Icon(Icons.chevron_left),
               tooltip: 'Página anterior',
             ),
             IconButton(
-              onPressed: _currentPage >= totalPages - 1
+              onPressed: pageData.currentPage >= pageData.totalPages - 1
                   ? null
-                  : () => _goToNextPage(totalPages),
+                  : () => pageController.goToNextPage(pageData.totalPages),
               icon: const Icon(Icons.chevron_right),
               tooltip: 'Próxima página',
             ),
