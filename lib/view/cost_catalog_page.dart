@@ -23,10 +23,13 @@ class CostCatalogPage extends StatelessWidget {
                   children: [
                     ElevatedButton.icon(
                       onPressed: () async {
-                        final inserted = await controller.importCatalogFromJson();
+                        final int insertedCount = await controller.importCatalogFromJson();
                         if (!context.mounted) return;
+                        final String message = insertedCount == 1
+                            ? '1 item importado do JSON.'
+                            : '$insertedCount itens importados do JSON.';
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('$inserted item(ns) importado(s) do JSON.')),
+                          SnackBar(content: Text(message)),
                         );
                       },
                       icon: const Icon(Icons.file_upload_outlined),

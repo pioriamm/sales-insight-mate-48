@@ -4,7 +4,6 @@ import 'dart:convert';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:hive/hive.dart';
 import 'package:intl/intl.dart';
 
 import '../data/cost_catalog_repository.dart';
@@ -48,23 +47,11 @@ class SalesController extends ChangeNotifier {
       ..sort((a, b) => a.descricao.toLowerCase().compareTo(b.descricao.toLowerCase()));
   }
 
-  Future<void> _reloadCatalog() async {
-    catalogItems = await _catalogRepository.getAll()
-      ..sort((a, b) => a.descricao.toLowerCase().compareTo(b.descricao.toLowerCase()));
-  }
-
   bool get isLoadingAny => isLoadingCost || isLoadingSales;
   int get loadingPercent => (loadingProgress * 100).clamp(0, 100).round();
 
   Future<void> loadCostCatalog() async {
-    final items = _catalogBox.values
-        .whereType<Map>()
-        .map((raw) => HiveCostItem.fromMap(Map<String, dynamic>.from(raw)))
-        .where((item) => item.descricao.trim().isNotEmpty)
-        .toList()
-      ..sort((a, b) => a.descricao.toLowerCase().compareTo(b.descricao.toLowerCase()));
-
-    catalogItems = items;
+    await _reloadCatalog();
     notifyListeners();
   }
 
@@ -76,47 +63,13 @@ class SalesController extends ChangeNotifier {
     final trimmed = descricao.trim();
     if (trimmed.isEmpty) return;
 
-    final itemId = id ?? DateTime.now().microsecondsSinceEpoch.toString();
-    final item = HiveCostItem(id: itemId, descricao: trimmed, custo: custo);
-    await _catalogBox.put(itemId, item.toMap());
-    await loadCostCatalog();
-  }
-
-  Future<void> importCatalogFromJson(String jsonText) async {
-    final decoded = jsonDecode(jsonText);
-    final List<dynamic> data = decoded is List ? decoded : [decoded];
-
-    for (final raw in data) {
-      if (raw is! Map) continue;
-      final mapped = Map<String, dynamic>.from(raw);
-      final descricao = mapped['descricao']?.toString() ?? '';
-      final custo = (mapped['custo'] as num?)?.toDouble() ?? 0;
-      final id = mapped['id']?.toString();
-      await saveCatalogItem(id: id, descricao: descricao, custo: custo);
-    }
-  }
-
-  double get despesasAdicionais {
-    return costItems.fold<double>(0, (sum, item) => sum + item.custo);
-  }
-
-  SummaryData get summary {
-    final vendaLiquida = sales.fold<double>(0, (sum, s) => sum + s.totalBRL);
-    final custoPecas = sales.fold<double>(0, (sum, s) => sum + s.custo);
-    final custosManuais = manualFields.values.fold<double>(0, (sum, v) => sum + v);
-    final total = vendaLiquida - custoPecas - custosManuais;
-
-    return SummaryData(
-      vendaLiquida: vendaLiquida,
-      custoPecas: custoPecas,
-      antecipacao: manualFields['antecipacao'] ?? 0,
-      publicidade: manualFields['publicidade'] ?? 0,
-      simples: manualFields['simples'] ?? 0,
-      tarifasFull: manualFields['tarifasFull'] ?? 0,
-      pagina: manualFields['pagina'] ?? 0,
-      despesasAdicionais: custosManuais,
-      total: total,
+    final item = CostCatalogItem(
+      id: id ?? _catalogRepository.nextId(),
+      descricao: trimmed,
+      custo: custo,
     );
+    await _catalogRepository.upsert(item);
+    await loadCostCatalog();
   }
 
   void _setLoadingState({
@@ -164,11 +117,8 @@ class SalesController extends ChangeNotifier {
 
   SummaryData get summary {
     final vendaLiquida = sales.fold<double>(0, (sum, s) => sum + s.totalBRL);
-
     final custoPecas = sales.fold<double>(0, (sum, s) => sum + s.custo);
-
     final custosManuais = manualFields.values.fold<double>(0, (sum, v) => sum + v);
-
     final total = vendaLiquida - custoPecas - custosManuais;
 
     return SummaryData(
