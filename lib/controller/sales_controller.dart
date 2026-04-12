@@ -7,7 +7,8 @@ import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:intl/intl.dart';
 
-import '../models/hive_cost_item.dart';
+import '../data/cost_catalog_repository.dart';
+import '../models/cost_catalog_item.dart';
 import '../models/sales_parser.dart';
 
 class SalesController extends ChangeNotifier {
@@ -19,7 +20,9 @@ class SalesController extends ChangeNotifier {
 
   List<SaleRow> sales = [];
   List<CostItem> costItems = [];
-  List<HiveCostItem> catalogItems = [];
+  List<CostCatalogItem> catalogItems = [];
+
+  final CostCatalogRepository _catalogRepository = CostCatalogRepository();
 
   final Map<String, double> manualFields = {
     'antecipacao': 0,
@@ -35,7 +38,15 @@ class SalesController extends ChangeNotifier {
   String loadingMessage = 'Importando planilha...';
   Timer? _loadingTicker;
 
-  Box<dynamic> get _catalogBox => Hive.box<dynamic>(costCatalogBoxName);
+  Future<void> init() async {
+    await _catalogRepository.init();
+    await _reloadCatalog();
+  }
+
+  Future<void> _reloadCatalog() async {
+    catalogItems = await _catalogRepository.getAll()
+      ..sort((a, b) => a.descricao.toLowerCase().compareTo(b.descricao.toLowerCase()));
+  }
 
   bool get isLoadingAny => isLoadingCost || isLoadingSales;
   int get loadingPercent => (loadingProgress * 100).clamp(0, 100).round();
@@ -142,6 +153,32 @@ class SalesController extends ChangeNotifier {
     _setLoadingState(cost: false, sales: false, progress: 0, message: 'Importando planilha...');
   }
 
+  double get despesasAdicionais {
+    return costItems.fold<double>(0, (sum, item) => sum + item.custo);
+  }
+
+  SummaryData get summary {
+    final vendaLiquida = sales.fold<double>(0, (sum, s) => sum + s.totalBRL);
+
+    final custoPecas = sales.fold<double>(0, (sum, s) => sum + s.custo);
+
+    final custosManuais = manualFields.values.fold<double>(0, (sum, v) => sum + v);
+
+    final total = vendaLiquida - custoPecas - custosManuais;
+
+    return SummaryData(
+      vendaLiquida: vendaLiquida,
+      custoPecas: custoPecas,
+      antecipacao: manualFields['antecipacao'] ?? 0,
+      publicidade: manualFields['publicidade'] ?? 0,
+      simples: manualFields['simples'] ?? 0,
+      tarifasFull: manualFields['tarifasFull'] ?? 0,
+      pagina: manualFields['pagina'] ?? 0,
+      despesasAdicionais: custosManuais,
+      total: total,
+    );
+  }
+
   Future<void> pickCostFile(BuildContext context) async {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
@@ -158,7 +195,10 @@ class SalesController extends ChangeNotifier {
       _setLoadingState(cost: true, sales: false, progress: loadingProgress, message: 'Processando planilha de custos...');
 
       final parsedDto = await compute(parseCostFileDto, bytes);
-      costItems = parsedDto.map((item) => CostItem.fromMap(Map<String, dynamic>.from(item))).toList(growable: false);
+
+      costItems = parsedDto
+          .map((item) => CostItem.fromMap(Map<String, dynamic>.from(item)))
+          .toList(growable: false);
 
       await _finishLoading(cost: true, sales: false, message: 'Custos importados com sucesso.');
     } catch (_) {
@@ -184,22 +224,24 @@ class SalesController extends ChangeNotifier {
     try {
       _setLoadingState(cost: false, sales: true, progress: loadingProgress, message: 'Convertendo planilha de vendas...');
       final parsedDto = await compute(parseSalesFileDto, bytes);
+      final parsedSales = parsedDto
+          .map((row) => SaleRow.fromMap(Map<String, dynamic>.from(row)))
+          .toList(growable: false);
 
-      final mergedCosts = [
-        ...costItems,
+      final combinedCosts = [
         ...catalogItems.map((item) => CostItem(sku: item.id, descricao: item.descricao, custo: item.custo)),
+        ...costItems,
       ];
 
-      final payload = {
-        'sales': parsedDto,
-        'costs': mergedCosts.map((item) => item.toMap()).toList(growable: false),
-      };
+      sales = parsedSales
+          .map((row) => row.copyWith(custo: findCostForTitle(row.titulo, combinedCosts)))
+          .toList(growable: false);
 
-      _setLoadingState(cost: false, sales: true, progress: loadingProgress, message: 'Aplicando custos...');
-      final withCostsDto = await compute(applyCostsAndSortSalesDto, payload);
-
-      sales = withCostsDto.map((row) => SaleRow.fromMap(Map<String, dynamic>.from(row))).toList(growable: false);
-      await _finishLoading(cost: false, sales: false, message: 'Vendas importadas com sucesso.');
+      await _finishLoading(
+        cost: false,
+        sales: true,
+        message: 'Vendas importadas com sucesso.',
+      );
     } catch (_) {
       _loadingTicker?.cancel();
       if (!context.mounted) return;
@@ -214,37 +256,86 @@ class SalesController extends ChangeNotifier {
   }
 
   Future<void> updateRow(int index, double? cost, String? note) async {
-    final original = sales[index];
-    final updatedCost = cost ?? original.custo;
+    final current = sales[index];
+    final nextCost = cost ?? current.custo;
 
-    sales[index] = original.copyWith(
-      custo: updatedCost,
-      observacao: note ?? original.observacao,
+    sales[index] = current.copyWith(
+      custo: nextCost,
+      observacao: note ?? current.observacao,
     );
 
-    if (cost != null && updatedCost > 0 && !_hasCatalogDescription(original.titulo)) {
-      await saveCatalogItem(descricao: original.titulo, custo: updatedCost);
+    if (cost != null && nextCost > 0) {
+      final found = await _catalogRepository.findByDescription(current.titulo);
+      if (found == null) {
+        await _catalogRepository.upsert(CostCatalogItem(
+          id: _catalogRepository.nextId(),
+          descricao: current.titulo,
+          custo: nextCost,
+        ));
+        await _reloadCatalog();
+      }
     }
 
     notifyListeners();
   }
 
-  bool _hasCatalogDescription(String descricao) {
-    final normalized = _normalize(descricao);
-    if (normalized.isEmpty) return true;
-    return catalogItems.any((item) => _normalize(item.descricao) == normalized);
+  Future<void> addCatalogItem(String descricao, double custo) async {
+    final item = CostCatalogItem(
+      id: _catalogRepository.nextId(),
+      descricao: descricao,
+      custo: custo,
+    );
+    await _catalogRepository.upsert(item);
+    await _reloadCatalog();
+    notifyListeners();
   }
 
-  String _normalize(String value) => value
-      .toLowerCase()
-      .replaceAll(RegExp(r'[áàâãä]'), 'a')
-      .replaceAll(RegExp(r'[éèêë]'), 'e')
-      .replaceAll(RegExp(r'[íìîï]'), 'i')
-      .replaceAll(RegExp(r'[óòôõö]'), 'o')
-      .replaceAll(RegExp(r'[úùûü]'), 'u')
-      .replaceAll(RegExp(r'ç'), 'c')
-      .replaceAll(RegExp(r'[^a-z0-9\s]'), '')
-      .trim();
+  Future<void> updateCatalogItem(CostCatalogItem item) async {
+    await _catalogRepository.upsert(item);
+    await _reloadCatalog();
+    notifyListeners();
+  }
+
+  Future<void> deleteCatalogItem(String id) async {
+    await _catalogRepository.delete(id);
+    await _reloadCatalog();
+    notifyListeners();
+  }
+
+  Future<int> importCatalogFromJson() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['json'],
+      withData: true,
+    );
+
+    final bytes = result?.files.single.bytes;
+    if (bytes == null) return 0;
+
+    final decoded = jsonDecode(utf8.decode(bytes));
+    final rawList = (decoded is List)
+        ? decoded
+        : (decoded is Map<String, dynamic> && decoded['items'] is List)
+            ? decoded['items'] as List<dynamic>
+            : <dynamic>[];
+
+    final parsed = rawList
+        .whereType<Map>()
+        .map((item) => CostCatalogItem(
+              id: item['id']?.toString().trim().isNotEmpty == true
+                  ? item['id'].toString()
+                  : _catalogRepository.nextId(),
+              descricao: item['descricao']?.toString() ?? '',
+              custo: (item['custo'] as num?)?.toDouble() ?? 0,
+            ))
+        .where((item) => item.descricao.trim().isNotEmpty)
+        .toList(growable: false);
+
+    await _catalogRepository.saveAll(parsed);
+    await _reloadCatalog();
+    notifyListeners();
+    return parsed.length;
+  }
 
   void resetAll() {
     sales = [];

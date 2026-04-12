@@ -6,7 +6,7 @@ import '../../cost_catalog_page.dart';
 class HeroPanel extends StatelessWidget {
   HeroPanel({required this.controller});
 
-  late final SalesController controller;
+  final SalesController controller;
 
   @override
   Widget build(BuildContext context) {
@@ -53,19 +53,16 @@ class HeroPanel extends StatelessWidget {
                 ),
               ),
 
-
               const SizedBox(width: 12),
 
               Expanded(
                 child: ElevatedButton(
                   onPressed: () {
                     Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) => const CostCatalogPage(),
-                      ),
+                      MaterialPageRoute(builder: (_) => const CostCatalogPage()),
                     );
                   },
-                  child: const Text('Banco Hive'),
+                  child: const Text('Banco Realtime DB'),
                 ),
               ),
 
