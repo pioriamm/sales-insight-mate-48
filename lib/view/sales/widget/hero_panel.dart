@@ -31,18 +31,6 @@ class HeroPanel extends StatelessWidget {
           const SizedBox(height: 20),
           Row(
             children: [
-              /// IMPORTAR CUSTOS
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: controller.isLoadingAny
-                      ? null
-                      : () => controller.pickCostFile(context),
-                  child: const Text('Importar custos'),
-                ),
-              ),
-
-              const SizedBox(width: 12),
-
               /// IMPORTAR VENDAS
               Expanded(
                 child: ElevatedButton(
@@ -62,7 +50,7 @@ class HeroPanel extends StatelessWidget {
                       MaterialPageRoute(builder: (_) => const CostCatalogPage()),
                     );
                   },
-                  child: const Text('Banco Realtime DB'),
+                  child: const Text('Lista de custos'),
                 ),
               ),
 

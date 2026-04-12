@@ -11,10 +11,17 @@ class CostCatalogPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Banco de custos (Realtime Database)'),
+        title: const Text('Banco de custos'),
       ),
       body: Consumer<SalesController>(
         builder: (context, controller, _) {
+          final sortedItems = [...controller.catalogItems]
+            ..sort(
+              (a, b) => a.descricao.toLowerCase().compareTo(
+                    b.descricao.toLowerCase(),
+                  ),
+            );
+
           return Column(
             children: [
               Padding(
@@ -35,41 +42,43 @@ class CostCatalogPage extends StatelessWidget {
                       icon: const Icon(Icons.file_upload_outlined),
                       label: const Text('Importar JSON'),
                     ),
-                    const SizedBox(width: 8),
-                    ElevatedButton.icon(
-                      onPressed: () => _openEditDialog(context),
-                      icon: const Icon(Icons.add),
-                      label: const Text('Novo item'),
-                    ),
                   ],
                 ),
               ),
               Expanded(
-                child: ListView.separated(
-                  itemCount: controller.catalogItems.length,
-                  separatorBuilder: (_, __) => const Divider(height: 1),
-                  itemBuilder: (context, index) {
-                    final item = controller.catalogItems[index];
-                    return ListTile(
-                      title: Text(item.descricao),
-                      subtitle: Text('ID: ${item.id}'),
-                      trailing: Wrap(
-                        spacing: 8,
-                        children: [
-                          Text('R\$ ${item.custo.toStringAsFixed(2)}'),
-                          IconButton(
-                            icon: const Icon(Icons.edit),
-                            onPressed: () => _openEditDialog(context, item: item),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
+                child: Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: MediaQuery.sizeOf(context).width * 0.30,
+                  ),
+                  child: ListView.separated(
+                    itemCount: sortedItems.length,
+                    separatorBuilder: (_, __) => const Divider(height: 1),
+                    itemBuilder: (context, index) {
+                      final item = sortedItems[index];
+                      return ListTile(
+                        title: Text(item.descricao),
+                        trailing: Wrap(
+                          spacing: 8,
+                          children: [
+                            Text('R\$ ${item.custo.toStringAsFixed(2)}'),
+                            IconButton(
+                              icon: const Icon(Icons.edit),
+                              onPressed: () => _openEditDialog(context, item: item),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
                 ),
               ),
             ],
           );
         },
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _openEditDialog(context),
+        child: const Icon(Icons.add),
       ),
     );
   }
@@ -135,7 +144,7 @@ class CostCatalogPage extends StatelessWidget {
 
     if (saved == true && context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Realtime Database atualizado com sucesso.')),
+        const SnackBar(content: Text('Lista de custos atualizada com sucesso.')),
       );
     }
   }
