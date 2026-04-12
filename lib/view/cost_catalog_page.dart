@@ -4,8 +4,44 @@ import 'package:provider/provider.dart';
 import '../controller/sales_controller.dart';
 import '../models/cost_catalog_item.dart';
 
-class CostCatalogPage extends StatelessWidget {
+class CostCatalogPage extends StatefulWidget {
   const CostCatalogPage({super.key});
+
+  @override
+  State<CostCatalogPage> createState() => _CostCatalogPageState();
+}
+
+class _CostCatalogPageState extends State<CostCatalogPage> {
+  static const int _itemsPerPage = 30;
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+  int _currentPage = 0;
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _goToPreviousPage() {
+    if (_currentPage == 0) return;
+    setState(() => _currentPage -= 1);
+  }
+
+  void _goToNextPage(int totalPages) {
+    if (_currentPage >= totalPages - 1) return;
+    setState(() => _currentPage += 1);
+  }
+
+  void _ensureCurrentPageIsValid(int totalPages) {
+    final int lastPageIndex = totalPages - 1;
+    if (_currentPage <= lastPageIndex) return;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      setState(() => _currentPage = lastPageIndex);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -58,45 +94,32 @@ class CostCatalogPage extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(height: 110),
+              Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: MediaQuery.sizeOf(context).width * 0.20,
+                ),
+                child: TextField(
+                  controller: _searchController,
+                  decoration: const InputDecoration(
+                    hintText: 'Pesquisar item da lista',
+                    prefixIcon: Icon(Icons.search),
+                    border: OutlineInputBorder(),
+                  ),
+                  onChanged: (value) {
+                    setState(() {
+                      _searchQuery = value.trim().toLowerCase();
+                      _currentPage = 0;
+                    });
+                  },
+                ),
+              ),
+              const SizedBox(height: 12),
               Expanded(
                 child: Padding(
                   padding: EdgeInsets.symmetric(
                     horizontal: MediaQuery.sizeOf(context).width * 0.20,
                   ),
-                  child: ListView.separated(
-                    itemCount: sortedItems.length,
-                    separatorBuilder: (_, __) => const Divider(height: 1),
-                    itemBuilder: (context, index) {
-                      final item = sortedItems[index];
-                      final TextStyle? itemTextStyle =
-                          Theme.of(context).textTheme.titleMedium;
-
-                      return ListTile(
-                        title: Text(
-                          item.descricao.toUpperCase(),
-                          style: itemTextStyle,
-                        ),
-                        trailing: Wrap(
-                          spacing: 8,
-                          children: [
-                            Text(
-                              'R\$ ${item.custo.toStringAsFixed(2)}',
-                              style: itemTextStyle,
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.edit),
-                              onPressed: () => _openEditDialog(context, item: item),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.delete_outline, color: Colors.red,),
-                              onPressed: () => _confirmDeleteItem(context, item),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
+                  child: _buildCatalogList(context, sortedItems),
                 ),
               ),
             ],
@@ -110,6 +133,92 @@ class CostCatalogPage extends StatelessWidget {
         shape: const CircleBorder(),
         child: const Icon(Icons.add),
       ),
+    );
+  }
+
+  Widget _buildCatalogList(BuildContext context, List<CostCatalogItem> sortedItems) {
+    final filteredItems = sortedItems.where((item) {
+      if (_searchQuery.isEmpty) return true;
+      return item.descricao.toLowerCase().contains(_searchQuery);
+    }).toList();
+
+    final int totalPages = filteredItems.isEmpty
+        ? 1
+        : ((filteredItems.length - 1) ~/ _itemsPerPage) + 1;
+    _ensureCurrentPageIsValid(totalPages);
+
+    final int startIndex = _currentPage * _itemsPerPage;
+    final int endIndex = (startIndex + _itemsPerPage).clamp(
+      0,
+      filteredItems.length,
+    );
+    final pagedItems = filteredItems.sublist(startIndex, endIndex);
+
+    if (filteredItems.isEmpty) {
+      return const Center(
+        child: Text('Nenhum item encontrado para a pesquisa informada.'),
+      );
+    }
+
+    return Column(
+      children: [
+        Expanded(
+          child: ListView.separated(
+            itemCount: pagedItems.length,
+            separatorBuilder: (_, __) => const Divider(height: 1),
+            itemBuilder: (context, index) {
+              final item = pagedItems[index];
+              final TextStyle? itemTextStyle = Theme.of(context).textTheme.titleMedium;
+
+              return ListTile(
+                title: Text(
+                  item.descricao.toUpperCase(),
+                  style: itemTextStyle,
+                ),
+                trailing: Wrap(
+                  spacing: 8,
+                  children: [
+                    Text(
+                      'R\$ ${item.custo.toStringAsFixed(2)}',
+                      style: itemTextStyle,
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.edit),
+                      onPressed: () => _openEditDialog(context, item: item),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.delete_outline, color: Colors.red),
+                      onPressed: () => _confirmDeleteItem(context, item),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            Text(
+              'Página ${_currentPage + 1} de $totalPages • ${filteredItems.length} itens',
+            ),
+            const SizedBox(width: 8),
+            IconButton(
+              onPressed: _currentPage == 0 ? null : _goToPreviousPage,
+              icon: const Icon(Icons.chevron_left),
+              tooltip: 'Página anterior',
+            ),
+            IconButton(
+              onPressed: _currentPage >= totalPages - 1
+                  ? null
+                  : () => _goToNextPage(totalPages),
+              icon: const Icon(Icons.chevron_right),
+              tooltip: 'Próxima página',
+            ),
+          ],
+        ),
+      ],
     );
   }
 
