@@ -43,8 +43,12 @@ class SalesController extends ChangeNotifier {
   }
 
   Future<void> _reloadCatalog() async {
-    catalogItems = await _catalogRepository.getAll()
-      ..sort((a, b) => a.descricao.toLowerCase().compareTo(b.descricao.toLowerCase()));
+    final items = await _catalogRepository.getAll();
+
+    catalogItems = List.from(items)
+      ..sort((a, b) => a.descricao
+          .toLowerCase()
+          .compareTo(b.descricao.toLowerCase()));
   }
 
   bool get isLoadingAny => isLoadingCost || isLoadingSales;
