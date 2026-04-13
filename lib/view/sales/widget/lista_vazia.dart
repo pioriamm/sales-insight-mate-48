@@ -9,9 +9,18 @@ class Listavazia extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.symmetric( horizontal: 24, vertical: 100),
-      child: Text('Nenhuma planilha importada ainda'),
+    return const Center(
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: 24, vertical: 100),
+        child: Text(
+          'Nenhuma planilha importada ainda',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
     );
   }
 }

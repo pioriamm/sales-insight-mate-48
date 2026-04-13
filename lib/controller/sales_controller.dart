@@ -89,6 +89,21 @@ class SalesController extends ChangeNotifier {
     notifyListeners();
   }
 
+  void _updateLoadingProgress({
+    required bool cost,
+    required bool sales,
+    required double progress,
+    required String message,
+  }) {
+    _loadingTicker?.cancel();
+    _setLoadingState(
+      cost: cost,
+      sales: sales,
+      progress: progress,
+      message: message,
+    );
+  }
+
   void _startSmoothProgress({
     required bool cost,
     required bool sales,
@@ -181,11 +196,23 @@ class SalesController extends ChangeNotifier {
     _startSmoothProgress(cost: false, sales: true, message: 'Lendo planilha de vendas...');
 
     try {
-      _setLoadingState(cost: false, sales: true, progress: loadingProgress, message: 'Convertendo planilha de vendas...');
+      _updateLoadingProgress(
+        cost: false,
+        sales: true,
+        progress: 0.15,
+        message: 'Convertendo planilha de vendas...',
+      );
       final parsedDto = await compute(parseSalesFileDto, bytes);
       final parsedSales = parsedDto
           .map((row) => SaleRow.fromMap(Map<String, dynamic>.from(row)))
           .toList(growable: false);
+
+      _updateLoadingProgress(
+        cost: false,
+        sales: true,
+        progress: 0.35,
+        message: 'Relacionando custos aos produtos...',
+      );
 
       final catalogByDescription = <String, CostCatalogItem>{
         for (final item in catalogItems) _normalize(item.descricao): item,
@@ -195,21 +222,50 @@ class SalesController extends ChangeNotifier {
         ...catalogItems.map((item) => CostItem(sku: item.id, descricao: item.descricao, custo: item.custo)),
         ...costItems,
       ];
-      final catalogCosts = catalogItems
-          .map((item) => CostItem(sku: item.id, descricao: item.descricao, custo: item.custo))
-          .toList(growable: false);
 
-      sales = parsedSales
-          .map((row) {
-            final match = catalogByDescription[_normalize(row.titulo)];
-            final catalogCost = match?.custo ?? 0;
-            final fallbackCost = findCostForTitle(row.titulo, combinedCosts);
-            return row.copyWith(
+      final nextSales = <SaleRow>[];
+      const chunkSize = 300;
+      final total = parsedSales.length;
+
+      if (total == 0) {
+        _updateLoadingProgress(
+          cost: false,
+          sales: true,
+          progress: 0.92,
+          message: 'Finalizando importação...',
+        );
+      }
+
+      for (var i = 0; i < total; i += chunkSize) {
+        final end = (i + chunkSize) > total ? total : i + chunkSize;
+        final chunk = parsedSales.sublist(i, end);
+
+        for (final row in chunk) {
+          final match = catalogByDescription[_normalize(row.titulo)];
+          final catalogCost = match?.custo ?? 0;
+          final fallbackCost = findCostForTitle(row.titulo, combinedCosts);
+          nextSales.add(
+            row.copyWith(
               custo: catalogCost > 0 ? catalogCost : fallbackCost,
               foundInCatalog: match != null,
-            );
-          })
-          .toList(growable: false);
+            ),
+          );
+        }
+
+        final base = 0.40;
+        final range = 0.52;
+        final completed = end / total;
+        final progress = base + (range * completed);
+        _updateLoadingProgress(
+          cost: false,
+          sales: true,
+          progress: progress,
+          message: 'Processando itens ($end/$total)...',
+        );
+        await Future<void>.delayed(Duration.zero);
+      }
+
+      sales = nextSales;
 
       await _finishLoading(
         cost: false,
