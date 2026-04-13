@@ -58,7 +58,7 @@ class SalesDataSource extends DataTableSource {
                 if (!s.foundInCatalog)
                   IconButton(
                     tooltip: 'Adicionar ao banco de custos',
-                    icon: const Icon(Icons.add_circle_outline, size: 20),
+                    icon: const Icon(Icons.add_circle, size: 30, color:  Color(0xFF194C51),),
                     onPressed: () => _openAddCatalogDialog(index, s),
                   ),
               ],

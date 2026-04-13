@@ -289,7 +289,7 @@ class SalesController extends ChangeNotifier {
     if (descricao.isEmpty) return;
 
     await addCatalogItem(descricao, custo);
-    sales[index] = current.copyWith(custo: custo, semCadastroCusto: false);
+    sales[index] = current.copyWith(custo: custo, foundInCatalog: false);
     notifyListeners();
   }
 
