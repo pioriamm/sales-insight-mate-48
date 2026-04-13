@@ -170,36 +170,39 @@ List<SaleRow> parseSalesFile(Uint8List bytes) {
   final rows = sheet?.rows ?? [];
   if (rows.isEmpty) return [];
 
-  final header = rows.first.map((e) => (e?.value ?? '').toString()).toList();
+  final headerRowIndex = _findHeaderRowIndex(rows);
+  final header = rows[headerRowIndex].map((e) => _cellText(e?.value)).toList();
 
-  int idx(String key, [String? alt1, String? alt2]) {
+  int idx(String key, [String? alt1, String? alt2, String? alt3]) {
     final normalized = header.map(_normalize).toList();
-    final candidates = [key, if (alt1 != null) alt1, if (alt2 != null) alt2].map(_normalize).toList();
-    return normalized.indexWhere((h) => candidates.any((c) => h == c));
+    final candidates = [key, if (alt1 != null) alt1, if (alt2 != null) alt2, if (alt3 != null) alt3]
+        .map(_normalize)
+        .toList(growable: false);
+    return normalized.indexWhere((h) => candidates.any((c) => h == c || h.contains(c) || c.contains(h)));
   }
 
-  final iNumero = idx('N.º de venda', 'Nº de venda', 'N° de venda');
-  final iData = idx('Data da venda');
+  final iNumero = idx('N.º de venda', 'Nº de venda', 'N° de venda', 'Número da venda');
+  final iData = idx('Data da venda', 'Data');
   final iEstado = idx('Estado');
   final iUnid = idx('Unid', 'Unidade', 'Unidades');
   final iReceita = idx('Receita', 'Receita por produtos (BRL)');
   final iTarifa = idx('Tarifa de venda', 'Tarifa de venda e impostos (BRL)');
   final iFrete = idx('Frete ML', 'Tarifas de envio (BRL)');
   final iTotal = idx('Total (BRL)');
-  final iTitulo = idx('Título do anúncio', 'Titulo do anúncio');
+  final iTitulo = idx('Título do anúncio', 'Titulo do anúncio', 'Título');
 
-  String valueAt(List<ex.Data?> row, int i) => i >= 0 && i < row.length ? (row[i]?.value ?? '').toString() : '';
+  String valueAt(List<ex.Data?> row, int i) => i >= 0 && i < row.length ? _cellText(row[i]?.value) : '';
   Object? rawAt(List<ex.Data?> row, int i) => i >= 0 && i < row.length ? row[i]?.value : null;
 
   final sales = <SaleRow>[];
-  for (var i = 1; i < rows.length; i++) {
+  for (var i = headerRowIndex + 1; i < rows.length; i++) {
     final row = rows[i];
-    if (row.every((c) => c == null || c.value == null || c.value.toString().trim().isEmpty)) continue;
+    if (row.every((c) => c == null || _cellText(c.value).trim().isEmpty)) continue;
 
     sales.add(SaleRow(
       id: '$i',
       numero: valueAt(row, iNumero),
-      data: _formatDate(valueAt(row, iData)),
+      data: _formatDate(rawAt(row, iData)),
       estado: valueAt(row, iEstado),
       unidade: _parseUnit(rawAt(row, iUnid)),
       receita: _parseMoney(rawAt(row, iReceita)),
@@ -392,12 +395,48 @@ String _normalize(String s) => s
 
 List<String> _keywords(String s) => s.split(RegExp(r'\s+')).where((w) => w.length > 2).toList();
 
+int _findHeaderRowIndex(List<List<ex.Data?>> rows) {
+  for (var i = 0; i < rows.length; i++) {
+    final line = rows[i].map((c) => _normalize(_cellText(c?.value))).toList(growable: false);
+    final score = <bool>[
+      line.any((c) => c.contains('venda')),
+      line.any((c) => c.contains('data')),
+      line.any((c) => c.contains('receita')),
+      line.any((c) => c.contains('titulo') || c.contains('anuncio')),
+    ].where((x) => x).length;
+    if (score >= 3) return i;
+  }
+  return 0;
+}
+
+String _cellText(Object? value) {
+  final unwrapped = _unwrapCellValue(value);
+  if (unwrapped == null) return '';
+  if (unwrapped is DateTime) {
+    return DateFormat('dd/MM/yyyy HH:mm').format(unwrapped);
+  }
+  return unwrapped.toString().trim();
+}
+
+Object? _unwrapCellValue(Object? value) {
+  if (value == null) return null;
+  if (value is num || value is String || value is DateTime || value is bool) return value;
+
+  final dynamicValue = value as dynamic;
+  try {
+    return dynamicValue.value;
+  } catch (_) {
+    return value;
+  }
+}
+
 double _parseNumber(Object? value) {
-  if (value == null) return 0;
-  final text = value.toString().trim();
+  final raw = _unwrapCellValue(value);
+  if (raw == null) return 0;
+  final text = raw.toString().trim();
   if (text.isEmpty) return 0;
 
-  final direct = value is num ? value.toDouble() : double.tryParse(text);
+  final direct = raw is num ? raw.toDouble() : double.tryParse(text);
   if (direct != null) return direct;
 
   final cleaned = text
@@ -411,14 +450,15 @@ double _parseNumber(Object? value) {
 }
 
 double _parseMoney(Object? value) {
-  if (value == null) return 0;
-  if (value is num) {
-    final asDouble = value.toDouble();
-    if (value is int && value.abs() >= 1000) return asDouble / 100;
+  final raw = _unwrapCellValue(value);
+  if (raw == null) return 0;
+  if (raw is num) {
+    final asDouble = raw.toDouble();
+    if (raw is int && raw.abs() >= 1000) return asDouble / 100;
     return asDouble;
   }
 
-  final text = value.toString().trim();
+  final text = raw.toString().trim();
   if (text.isEmpty) return 0;
 
   final parsed = _parseNumber(text);
@@ -430,10 +470,11 @@ double _parseMoney(Object? value) {
 }
 
 int _parseUnit(Object? value) {
-  if (value == null) return 0;
-  if (value is num) return value.round();
+  final raw = _unwrapCellValue(value);
+  if (raw == null) return 0;
+  if (raw is num) return raw.round();
 
-  final text = value.toString().trim();
+  final text = raw.toString().trim();
   if (text.isEmpty) return 0;
 
   final direct = _parseNumber(text);
@@ -444,8 +485,21 @@ int _parseUnit(Object? value) {
   return int.tryParse(match.group(0)!) ?? 0;
 }
 
-String _formatDate(String value) {
-  final text = value.trim();
+String _formatDate(Object? value) {
+  final raw = _unwrapCellValue(value);
+  if (raw == null) return '';
+
+  if (raw is DateTime) {
+    return DateFormat('dd/MM/yyyy HH:mm').format(raw);
+  }
+
+  if (raw is num) {
+    final excelEpoch = DateTime(1899, 12, 30);
+    final date = excelEpoch.add(Duration(milliseconds: (raw * 24 * 60 * 60 * 1000).round()));
+    return DateFormat('dd/MM/yyyy HH:mm').format(date);
+  }
+
+  final text = raw.toString().trim();
   if (text.isEmpty) return '';
 
   final iso = DateTime.tryParse(text);
