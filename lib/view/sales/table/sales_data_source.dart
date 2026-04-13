@@ -83,6 +83,7 @@ class SalesDataSource extends DataTableSource {
           SizedBox(
             width: 100,
             child: TextFormField(
+              key: ValueKey('custo-$index-${s.custo}'),
               initialValue: s.custo == 0 ? '' : s.custo.toStringAsFixed(2),
               textAlign: TextAlign.center,
               onFieldSubmitted: (text) {
