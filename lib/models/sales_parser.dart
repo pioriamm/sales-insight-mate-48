@@ -181,10 +181,10 @@ List<SaleRow> parseSalesFile(Uint8List bytes) {
   final iNumero = idx('N.º de venda', 'Nº de venda', 'N° de venda');
   final iData = idx('Data da venda');
   final iEstado = idx('Estado');
-  final iUnid = idx('Unid', 'Unidade');
-  final iReceita = idx('Receita');
-  final iTarifa = idx('Tarifa de venda');
-  final iFrete = idx('Frete ML');
+  final iUnid = idx('Unid', 'Unidade', 'Unidades');
+  final iReceita = idx('Receita', 'Receita por produtos (BRL)');
+  final iTarifa = idx('Tarifa de venda', 'Tarifa de venda e impostos (BRL)');
+  final iFrete = idx('Frete ML', 'Tarifas de envio (BRL)');
   final iTotal = idx('Total (BRL)');
   final iTitulo = idx('Título do anúncio', 'Titulo do anúncio');
 
