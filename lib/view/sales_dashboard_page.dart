@@ -109,8 +109,7 @@ class SalesDashboardPage extends StatelessWidget {
                           sales: controller.sales,
                           currency: CurrencyFormatter(),
                           onUpdateRow: controller.updateRow,
-                          onAddMissingCatalogItem: (index, custoAtual) =>
-                              _showAddCatalogDialog(context, controller, index, custoAtual),
+                          onAddMissingCatalogItem: controller.addSaleItemToCatalog,
                         ),
                       ]
                     ],
