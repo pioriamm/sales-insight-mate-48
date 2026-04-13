@@ -187,6 +187,10 @@ class SalesController extends ChangeNotifier {
           .map((row) => SaleRow.fromMap(Map<String, dynamic>.from(row)))
           .toList(growable: false);
 
+      final catalogByDescription = <String, CostCatalogItem>{
+        for (final item in catalogItems) _normalize(item.descricao): item,
+      };
+
       final combinedCosts = [
         ...catalogItems.map((item) => CostItem(sku: item.id, descricao: item.descricao, custo: item.custo)),
         ...costItems,
@@ -196,10 +200,15 @@ class SalesController extends ChangeNotifier {
           .toList(growable: false);
 
       sales = parsedSales
-          .map((row) => row.copyWith(
-                custo: findCostForTitle(row.titulo, combinedCosts),
-                semCadastroCusto: findCostForTitle(row.titulo, catalogCosts) == 0,
-              ))
+          .map((row) {
+            final match = catalogByDescription[_normalize(row.titulo)];
+            final catalogCost = match?.custo ?? 0;
+            final fallbackCost = findCostForTitle(row.titulo, combinedCosts);
+            return row.copyWith(
+              custo: catalogCost > 0 ? catalogCost : fallbackCost,
+              foundInCatalog: match != null,
+            );
+          })
           .toList(growable: false);
 
       await _finishLoading(
@@ -241,6 +250,25 @@ class SalesController extends ChangeNotifier {
       }
     }
 
+    notifyListeners();
+  }
+
+  Future<void> addSaleItemToCatalog(int index, double custo) async {
+    final current = sales[index];
+    final found = await _catalogRepository.findByDescription(current.titulo);
+    if (found == null) {
+      await _catalogRepository.upsert(CostCatalogItem(
+        id: _catalogRepository.nextId(),
+        descricao: current.titulo,
+        custo: custo,
+      ));
+      await _reloadCatalog();
+    }
+
+    sales[index] = current.copyWith(
+      custo: custo,
+      foundInCatalog: true,
+    );
     notifyListeners();
   }
 
@@ -352,5 +380,9 @@ class SalesController extends ChangeNotifier {
       allowedExtensions: ['xlsx'],
       bytes: bytes,
     );
+  }
+
+  String _normalize(String value) {
+    return value.trim().toLowerCase();
   }
 }

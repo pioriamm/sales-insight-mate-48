@@ -18,7 +18,7 @@ class SaleRow {
     required this.titulo,
     this.custo = 0,
     this.observacao = '',
-    this.semCadastroCusto = false,
+    this.foundInCatalog = false,
   });
 
   final String id;
@@ -33,7 +33,7 @@ class SaleRow {
   final String titulo;
   final double custo;
   final String observacao;
-  final bool semCadastroCusto;
+  final bool foundInCatalog;
 
   Map<String, Object> toMap() => {
         'id': id,
@@ -48,7 +48,7 @@ class SaleRow {
         'titulo': titulo,
         'custo': custo,
         'observacao': observacao,
-        'semCadastroCusto': semCadastroCusto,
+        'foundInCatalog': foundInCatalog,
       };
 
   static SaleRow fromMap(Map<String, dynamic> map) => SaleRow(
@@ -64,10 +64,14 @@ class SaleRow {
         titulo: map['titulo']?.toString() ?? '',
         custo: (map['custo'] as num?)?.toDouble() ?? 0,
         observacao: map['observacao']?.toString() ?? '',
-        semCadastroCusto: map['semCadastroCusto'] == true,
+        foundInCatalog: map['foundInCatalog'] as bool? ?? false,
       );
 
-  SaleRow copyWith({double? custo, String? observacao, bool? semCadastroCusto}) => SaleRow(
+  SaleRow copyWith({
+    double? custo,
+    String? observacao,
+    bool? foundInCatalog,
+  }) => SaleRow(
         id: id,
         numero: numero,
         data: data,
@@ -80,7 +84,7 @@ class SaleRow {
         titulo: titulo,
         custo: custo ?? this.custo,
         observacao: observacao ?? this.observacao,
-        semCadastroCusto: semCadastroCusto ?? this.semCadastroCusto,
+        foundInCatalog: foundInCatalog ?? this.foundInCatalog,
       );
 }
 
