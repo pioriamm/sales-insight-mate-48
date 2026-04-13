@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:sales_insight_mate/view/sales/table/sales_data_source.dart';
 
 import '../../../models/sales_parser.dart';
-import '../../sales_dashboard_page.dart';
 import '../utils/currency_formatter.dart';
 
 class SalesTable extends StatelessWidget {

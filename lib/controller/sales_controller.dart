@@ -195,6 +195,9 @@ class SalesController extends ChangeNotifier {
         ...catalogItems.map((item) => CostItem(sku: item.id, descricao: item.descricao, custo: item.custo)),
         ...costItems,
       ];
+      final catalogCosts = catalogItems
+          .map((item) => CostItem(sku: item.id, descricao: item.descricao, custo: item.custo))
+          .toList(growable: false);
 
       sales = parsedSales
           .map((row) {
@@ -277,6 +280,16 @@ class SalesController extends ChangeNotifier {
     );
     await _catalogRepository.upsert(item);
     await _reloadCatalog();
+    notifyListeners();
+  }
+
+  Future<void> addMissingSaleToCatalog(int index, double custo) async {
+    final current = sales[index];
+    final descricao = current.titulo.trim();
+    if (descricao.isEmpty) return;
+
+    await addCatalogItem(descricao, custo);
+    sales[index] = current.copyWith(custo: custo, semCadastroCusto: false);
     notifyListeners();
   }
 
