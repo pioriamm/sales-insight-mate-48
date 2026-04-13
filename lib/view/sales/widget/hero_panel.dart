@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../../controller/sales_controller.dart';
-import '../../cost_catalog_page.dart';
 
 class HeroPanel extends StatelessWidget {
   HeroPanel({required this.controller});
@@ -28,40 +27,13 @@ class HeroPanel extends StatelessWidget {
             'Importe planilhas para análise automática.',
             style: TextStyle(color: Colors.white70),
           ),
-          const SizedBox(height: 20),
-          Row(
-            children: [
-              /// IMPORTAR VENDAS
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: controller.isLoadingAny
-                      ? null
-                      : () => controller.pickSalesFile(context),
-                  child: const Text('Importar vendas'),
-                ),
-              ),
-
-              const SizedBox(width: 12),
-
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const CostCatalogPage()),
-                    );
-                  },
-                  child: const Text('Lista de custos'),
-                ),
-              ),
-
-              /// BOTÕES EXTRAS (SÓ QUANDO TEM DADOS)
-              if (controller.sales.isNotEmpty) ...[
-                const SizedBox(width: 12),
-
-                /// EXPORTAR EXCEL
+          if (controller.sales.isNotEmpty) ...[
+            const SizedBox(height: 20),
+            Row(
+              children: [
                 IconButton(
                   onPressed:
-                  controller.isLoadingAny ? null : controller.exportExcel,
+                      controller.isLoadingAny ? null : controller.exportExcel,
                   icon: const Icon(Icons.download),
                   tooltip: 'Exportar Excel',
                   style: IconButton.styleFrom(
@@ -69,13 +41,9 @@ class HeroPanel extends StatelessWidget {
                     foregroundColor: const Color(0xFF194C51),
                   ),
                 ),
-
                 const SizedBox(width: 8),
-
-                /// RESETAR
                 IconButton(
-                  onPressed:
-                  controller.isLoadingAny ? null : controller.resetAll,
+                  onPressed: controller.isLoadingAny ? null : controller.resetAll,
                   icon: const Icon(Icons.refresh),
                   tooltip: 'Resetar dados',
                   style: IconButton.styleFrom(
@@ -84,8 +52,8 @@ class HeroPanel extends StatelessWidget {
                   ),
                 ),
               ],
-            ],
-          ),
+            ),
+          ],
         ],
       ),
     );
