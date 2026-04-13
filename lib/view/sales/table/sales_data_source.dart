@@ -7,11 +7,13 @@ class SalesDataSource extends DataTableSource {
     required this.sales,
     required this.currency,
     required this.onUpdateRow,
+    required this.onAddMissingCatalogItem,
   });
 
   final List<SaleRow> sales;
   final CurrencyFormatter currency;
   final Future<void> Function(int, double?, String?) onUpdateRow;
+  final Future<void> Function(int, double) onAddMissingCatalogItem;
 
   @override
   DataRow? getRow(int index) {
@@ -39,6 +41,42 @@ class SalesDataSource extends DataTableSource {
         )),
 
         DataCell(Text(s.unidade.toString())),
+
+        DataCell(
+          SizedBox(
+            width: 380,
+            child: Row(
+              children: [
+                if (s.semCadastroCusto)
+                  InkWell(
+                    borderRadius: BorderRadius.circular(20),
+                    onTap: () => onAddMissingCatalogItem(index, s.custo),
+                    child: Container(
+                      width: 30,
+                      height: 30,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFF0D5C63),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.add,
+                        size: 18,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                if (s.semCadastroCusto) const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    s.titulo,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
 
         DataCell(Text(currency.format(s.receita))),
 
@@ -76,17 +114,6 @@ class SalesDataSource extends DataTableSource {
           currency.format(s.totalBRL),
           style: const TextStyle(fontWeight: FontWeight.bold),
         )),
-
-        DataCell(
-          SizedBox(
-            width: 220,
-            child: Text(
-              s.titulo,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-        ),
 
         /// OBSERVAÇÃO EDITÁVEL
         DataCell(

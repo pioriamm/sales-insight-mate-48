@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:sales_insight_mate/view/sales/table/sales_data_source.dart';
 
 import '../../../models/sales_parser.dart';
-import '../../sales_dashboard_page.dart';
 import '../utils/currency_formatter.dart';
 
 class SalesTable extends StatelessWidget {
@@ -11,11 +10,13 @@ class SalesTable extends StatelessWidget {
     required this.sales,
     required this.currency,
     required this.onUpdateRow,
+    required this.onAddMissingCatalogItem,
   });
 
   final List<SaleRow> sales;
   final CurrencyFormatter currency;
   final Future<void> Function(int, double?, String?) onUpdateRow;
+  final Future<void> Function(int, double) onAddMissingCatalogItem;
 
   @override
   Widget build(BuildContext context) {
@@ -23,6 +24,7 @@ class SalesTable extends StatelessWidget {
       sales: sales,
       currency: currency,
       onUpdateRow: onUpdateRow,
+      onAddMissingCatalogItem: onAddMissingCatalogItem,
     );
 
     return Card(
@@ -44,12 +46,17 @@ class SalesTable extends StatelessWidget {
                   DataColumn(label: Text('Data')),
                   DataColumn(label: Text('Estado')),
                   DataColumn(label: Text('Unid')),
+                  DataColumn(
+                    label: SizedBox(
+                      width: 380,
+                      child: Text('Título'),
+                    ),
+                  ),
                   DataColumn(label: Text('Receita')),
                   DataColumn(label: Text('Tarifa')),
                   DataColumn(label: Text('Frete ML')),
                   DataColumn(label: Text('Custo')),
                   DataColumn(label: Text('Total')),
-                  DataColumn(label: Text('Título')),
                   DataColumn(label: Text('Observação')),
                 ],
                 source: source,

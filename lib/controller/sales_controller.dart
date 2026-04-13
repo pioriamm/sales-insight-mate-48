@@ -191,9 +191,15 @@ class SalesController extends ChangeNotifier {
         ...catalogItems.map((item) => CostItem(sku: item.id, descricao: item.descricao, custo: item.custo)),
         ...costItems,
       ];
+      final catalogCosts = catalogItems
+          .map((item) => CostItem(sku: item.id, descricao: item.descricao, custo: item.custo))
+          .toList(growable: false);
 
       sales = parsedSales
-          .map((row) => row.copyWith(custo: findCostForTitle(row.titulo, combinedCosts)))
+          .map((row) => row.copyWith(
+                custo: findCostForTitle(row.titulo, combinedCosts),
+                semCadastroCusto: findCostForTitle(row.titulo, catalogCosts) == 0,
+              ))
           .toList(growable: false);
 
       await _finishLoading(
@@ -246,6 +252,32 @@ class SalesController extends ChangeNotifier {
     );
     await _catalogRepository.upsert(item);
     await _reloadCatalog();
+    notifyListeners();
+  }
+
+  Future<void> addMissingSaleToCatalog(int index, double custo) async {
+    final current = sales[index];
+    final descricao = current.titulo.trim();
+    if (descricao.isEmpty) return;
+
+    await addCatalogItem(descricao, custo);
+    final newCatalogItem = CostItem(
+      sku: '',
+      descricao: descricao,
+      custo: custo,
+    );
+
+    sales = sales
+        .map((sale) {
+          final matchedCost = findCostForTitle(sale.titulo, [newCatalogItem]);
+          if (matchedCost == 0) return sale;
+          return sale.copyWith(
+            custo: matchedCost,
+            semCadastroCusto: false,
+          );
+        })
+        .toList(growable: false);
+
     notifyListeners();
   }
 
