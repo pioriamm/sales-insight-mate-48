@@ -4,14 +4,18 @@ import '../utils/currency_formatter.dart';
 
 class SalesDataSource extends DataTableSource {
   SalesDataSource({
+    required this.context,
     required this.sales,
     required this.currency,
     required this.onUpdateRow,
+    required this.onAddMissingCatalogItem,
   });
 
+  final BuildContext context;
   final List<SaleRow> sales;
   final CurrencyFormatter currency;
   final Future<void> Function(int, double?, String?) onUpdateRow;
+  final Future<void> Function(int, double) onAddMissingCatalogItem;
 
   @override
   DataRow? getRow(int index) {
@@ -39,6 +43,28 @@ class SalesDataSource extends DataTableSource {
         )),
 
         DataCell(Text(s.unidade.toString())),
+
+        DataCell(
+          SizedBox(
+            width: 460,
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    s.titulo,
+                    maxLines: 2,
+                  ),
+                ),
+                if (!s.foundInCatalog)
+                  IconButton(
+                    tooltip: 'Adicionar ao banco de custos',
+                    icon: const Icon(Icons.add_circle_outline, size: 20),
+                    onPressed: () => _openAddCatalogDialog(index, s),
+                  ),
+              ],
+            ),
+          ),
+        ),
 
         DataCell(Text(currency.format(s.receita))),
 
@@ -77,17 +103,6 @@ class SalesDataSource extends DataTableSource {
           style: const TextStyle(fontWeight: FontWeight.bold),
         )),
 
-        DataCell(
-          SizedBox(
-            width: 220,
-            child: Text(
-              s.titulo,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-        ),
-
         /// OBSERVAÇÃO EDITÁVEL
         DataCell(
           SizedBox(
@@ -115,4 +130,50 @@ class SalesDataSource extends DataTableSource {
 
   @override
   int get selectedRowCount => 0;
+
+  Future<void> _openAddCatalogDialog(int index, SaleRow sale) async {
+    final titleCtrl = TextEditingController(text: sale.titulo);
+    final costCtrl = TextEditingController(
+      text: sale.custo > 0 ? sale.custo.toStringAsFixed(2) : '',
+    );
+
+    final shouldSave = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Adicionar no banco de custos'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: titleCtrl,
+                readOnly: true,
+                decoration: const InputDecoration(labelText: 'Descrição'),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: costCtrl,
+                decoration: const InputDecoration(labelText: 'Custo'),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Salvar'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (shouldSave != true) return;
+    final cost = double.tryParse(costCtrl.text.replaceAll(',', '.')) ?? 0;
+    if (cost <= 0) return;
+    await onAddMissingCatalogItem(index, cost);
+  }
 }

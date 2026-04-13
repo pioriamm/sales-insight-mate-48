@@ -52,6 +52,7 @@ class SalesDashboardPage extends StatelessWidget {
                           sales: controller.sales,
                           currency: CurrencyFormatter(),
                           onUpdateRow: controller.updateRow,
+                          onAddMissingCatalogItem: controller.addSaleItemToCatalog,
                         ),
                       ]
                     ],
@@ -75,7 +76,6 @@ class SalesDashboardPage extends StatelessWidget {
     );
   }
 }
-
 
 
 
