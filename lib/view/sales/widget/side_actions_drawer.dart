@@ -49,6 +49,7 @@ class SideActionsDrawer extends StatelessWidget {
               isCollapsed: isCollapsed,
               icon: Icons.upload_file,
               label: 'Importar vendas',
+              isLoading: controller.isLoadingSales,
               onPressed: controller.isLoadingAny
                   ? null
                   : () => controller.pickSalesFile(context),
@@ -76,12 +77,14 @@ class _DrawerActionButton extends StatelessWidget {
     required this.isCollapsed,
     required this.icon,
     required this.label,
+    this.isLoading = false,
     required this.onPressed,
   });
 
   final bool isCollapsed;
   final IconData icon;
   final String label;
+  final bool isLoading;
   final VoidCallback? onPressed;
 
   @override
@@ -101,12 +104,19 @@ class _DrawerActionButton extends StatelessWidget {
               ? MainAxisAlignment.center
               : MainAxisAlignment.start,
           children: [
-            Icon(icon, size: 20),
+            if (isLoading)
+              const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2.2),
+              )
+            else
+              Icon(icon, size: 20),
             if (!isCollapsed) ...[
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  label,
+                  isLoading ? 'Carregando...' : label,
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
