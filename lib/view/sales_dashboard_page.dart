@@ -14,6 +14,63 @@ import '../controller/sales_controller.dart';
 class SalesDashboardPage extends StatelessWidget {
   const SalesDashboardPage({super.key});
 
+  Future<void> _showAddCatalogDialog(
+    BuildContext context,
+    SalesController controller,
+    int index,
+    double custoAtual,
+  ) async {
+    final sale = controller.sales[index];
+    final custoCtrl = TextEditingController(
+      text: custoAtual > 0 ? custoAtual.toStringAsFixed(2) : '',
+    );
+
+    final result = await showDialog<double>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Adicionar item ao banco de custos'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                sale.titulo,
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: custoCtrl,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                decoration: const InputDecoration(
+                  labelText: 'Custo',
+                  hintText: '0,00',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: () {
+                final custo = double.tryParse(custoCtrl.text.replaceAll(',', '.')) ?? 0;
+                if (custo <= 0) return;
+                Navigator.of(dialogContext).pop(custo);
+              },
+              child: const Text('Salvar'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (result == null || result <= 0) return;
+    await controller.addMissingSaleToCatalog(index, result);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -52,6 +109,8 @@ class SalesDashboardPage extends StatelessWidget {
                           sales: controller.sales,
                           currency: CurrencyFormatter(),
                           onUpdateRow: controller.updateRow,
+                          onAddMissingCatalogItem: (index, custoAtual) =>
+                              _showAddCatalogDialog(context, controller, index, custoAtual),
                         ),
                       ]
                     ],
@@ -75,7 +134,6 @@ class SalesDashboardPage extends StatelessWidget {
     );
   }
 }
-
 
 
 

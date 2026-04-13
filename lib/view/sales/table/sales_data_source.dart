@@ -7,11 +7,13 @@ class SalesDataSource extends DataTableSource {
     required this.sales,
     required this.currency,
     required this.onUpdateRow,
+    required this.onAddMissingCatalogItem,
   });
 
   final List<SaleRow> sales;
   final CurrencyFormatter currency;
   final Future<void> Function(int, double?, String?) onUpdateRow;
+  final Future<void> Function(int, double) onAddMissingCatalogItem;
 
   @override
   DataRow? getRow(int index) {
@@ -39,6 +41,37 @@ class SalesDataSource extends DataTableSource {
         )),
 
         DataCell(Text(s.unidade.toString())),
+
+        DataCell(
+          SizedBox(
+            width: 380,
+            child: Row(
+              children: [
+                if (s.semCadastroCusto)
+                  IconButton(
+                    tooltip: 'Adicionar ao banco de custos',
+                    visualDensity: VisualDensity.compact,
+                    style: IconButton.styleFrom(
+                      backgroundColor: const Color(0xFF0B4F58),
+                      foregroundColor: Colors.white,
+                      shape: const CircleBorder(),
+                      fixedSize: const Size(32, 32),
+                      padding: EdgeInsets.zero,
+                    ),
+                    onPressed: () => onAddMissingCatalogItem(index, s.custo),
+                    icon: const Icon(Icons.add, size: 18),
+                  ),
+                Expanded(
+                  child: Text(
+                    s.titulo,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
 
         DataCell(Text(currency.format(s.receita))),
 
@@ -76,17 +109,6 @@ class SalesDataSource extends DataTableSource {
           currency.format(s.totalBRL),
           style: const TextStyle(fontWeight: FontWeight.bold),
         )),
-
-        DataCell(
-          SizedBox(
-            width: 220,
-            child: Text(
-              s.titulo,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-        ),
 
         /// OBSERVAÇÃO EDITÁVEL
         DataCell(
