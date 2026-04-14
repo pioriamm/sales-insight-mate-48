@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:sales_insight_mate/view/sales/table/sales_table.dart';
 import 'package:sales_insight_mate/view/sales/utils/currency_formatter.dart';
 import 'package:sales_insight_mate/view/sales/widget/card_resumo.dart';
+import 'package:sales_insight_mate/view/sales/widget/car_parts_mosaic.dart';
 import 'package:sales_insight_mate/view/sales/widget/hero_panel.dart';
 import 'package:sales_insight_mate/view/sales/widget/lista_vazia.dart';
 import 'package:sales_insight_mate/view/sales/widget/loading_overlay.dart';
@@ -105,6 +106,8 @@ class _SalesDashboardPageState extends State<SalesDashboardPage> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
+                            const CarPartsMosaic(),
+                            const SizedBox(height: 20),
                             HeroPanel(controller: controller),
                             const SizedBox(height: 20),
                             if (controller.sales.isEmpty)
