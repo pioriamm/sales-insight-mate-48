@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 
 import 'sales_dashboard_page.dart';
@@ -230,6 +233,17 @@ class LoginPage extends StatelessWidget {
 class _HeroImageMosaic extends StatelessWidget {
   const _HeroImageMosaic();
 
+  static const List<String> _animatedImages = [
+    'https://images.unsplash.com/photo-1487754180451-c456f719a1fc?auto=format&fit=crop&w=900&q=80',
+    'https://images.unsplash.com/photo-1615906655593-ad0386982a0f?auto=format&fit=crop&w=900&q=80',
+    'https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=900&q=80',
+    'https://images.unsplash.com/photo-1580273916550-e323be2ae537?auto=format&fit=crop&w=900&q=80',
+    'https://images.unsplash.com/photo-1613214149922-f1809c99b414?auto=format&fit=crop&w=900&q=80',
+    'https://images.unsplash.com/photo-1514316454349-750a7fd3da3a?auto=format&fit=crop&w=900&q=80',
+    'https://images.unsplash.com/photo-1616788494672-ec7ca25fdda9?auto=format&fit=crop&w=900&q=80',
+    'https://images.unsplash.com/photo-1526726538690-5cbf956ae2fd?auto=format&fit=crop&w=900&q=80',
+  ];
+
   @override
   Widget build(BuildContext context) {
     return IgnorePointer(
@@ -242,57 +256,64 @@ class _HeroImageMosaic extends StatelessWidget {
             opacity: opacity,
             child: Stack(
               children: const [
-                _MosaicImage(
-                  imageUrl:
-                      'https://images.unsplash.com/photo-1516627145497-ae6968895b74?auto=format&fit=crop&w=700&q=80',
+                _AnimatedMosaicImage(
+                  imagePool: _animatedImages,
+                  initialImageUrl:
+                      'https://images.unsplash.com/photo-1487754180451-c456f719a1fc?auto=format&fit=crop&w=900&q=80',
                   top: 170,
                   left: -20,
                   width: 210,
                   height: 330,
                 ),
-                _MosaicImage(
-                  imageUrl:
-                      'https://images.unsplash.com/photo-1516627315008-c1f67bb83249?auto=format&fit=crop&w=700&q=80',
+                _AnimatedMosaicImage(
+                  imagePool: _animatedImages,
+                  initialImageUrl:
+                      'https://images.unsplash.com/photo-1615906655593-ad0386982a0f?auto=format&fit=crop&w=900&q=80',
                   top: 320,
                   left: 185,
                   width: 250,
                   height: 350,
                 ),
-                _MosaicImage(
-                  imageUrl:
-                      'https://images.unsplash.com/photo-1478860409698-8707f313ee8b?auto=format&fit=crop&w=700&q=80',
+                _AnimatedMosaicImage(
+                  imagePool: _animatedImages,
+                  initialImageUrl:
+                      'https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=900&q=80',
                   top: 435,
                   left: 460,
                   width: 250,
                   height: 340,
                 ),
-                _MosaicImage(
-                  imageUrl:
-                      'https://images.unsplash.com/photo-1542816417-098367b6eb42?auto=format&fit=crop&w=700&q=80',
+                _AnimatedMosaicImage(
+                  imagePool: _animatedImages,
+                  initialImageUrl:
+                      'https://images.unsplash.com/photo-1580273916550-e323be2ae537?auto=format&fit=crop&w=900&q=80',
                   top: 560,
                   left: 720,
                   width: 230,
                   height: 260,
                 ),
-                _MosaicImage(
-                  imageUrl:
-                      'https://images.unsplash.com/photo-1516627436130-0b09740f14f6?auto=format&fit=crop&w=700&q=80',
+                _AnimatedMosaicImage(
+                  imagePool: _animatedImages,
+                  initialImageUrl:
+                      'https://images.unsplash.com/photo-1613214149922-f1809c99b414?auto=format&fit=crop&w=900&q=80',
                   top: 320,
                   right: 180,
                   width: 240,
                   height: 380,
                 ),
-                _MosaicImage(
-                  imageUrl:
-                      'https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?auto=format&fit=crop&w=700&q=80',
+                _AnimatedMosaicImage(
+                  imagePool: _animatedImages,
+                  initialImageUrl:
+                      'https://images.unsplash.com/photo-1514316454349-750a7fd3da3a?auto=format&fit=crop&w=900&q=80',
                   top: 170,
                   right: -30,
                   width: 210,
                   height: 330,
                 ),
-                _MosaicImage(
-                  imageUrl:
-                      'https://images.unsplash.com/photo-1516627145497-ae6968895b74?auto=format&fit=crop&w=700&q=80',
+                _AnimatedMosaicImage(
+                  imagePool: _animatedImages,
+                  initialImageUrl:
+                      'https://images.unsplash.com/photo-1616788494672-ec7ca25fdda9?auto=format&fit=crop&w=900&q=80',
                   top: 500,
                   right: -15,
                   width: 210,
@@ -307,9 +328,10 @@ class _HeroImageMosaic extends StatelessWidget {
   }
 }
 
-class _MosaicImage extends StatelessWidget {
-  const _MosaicImage({
-    required this.imageUrl,
+class _AnimatedMosaicImage extends StatefulWidget {
+  const _AnimatedMosaicImage({
+    required this.imagePool,
+    required this.initialImageUrl,
     required this.top,
     this.left,
     this.right,
@@ -317,7 +339,8 @@ class _MosaicImage extends StatelessWidget {
     required this.height,
   });
 
-  final String imageUrl;
+  final List<String> imagePool;
+  final String initialImageUrl;
   final double top;
   final double? left;
   final double? right;
@@ -325,22 +348,66 @@ class _MosaicImage extends StatelessWidget {
   final double height;
 
   @override
+  State<_AnimatedMosaicImage> createState() => _AnimatedMosaicImageState();
+}
+
+class _AnimatedMosaicImageState extends State<_AnimatedMosaicImage> {
+  static const Duration _fadeDuration = Duration(seconds: 4);
+
+  final Random _random = Random();
+  Timer? _swapTimer;
+  late String _currentImageUrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentImageUrl = widget.initialImageUrl;
+    _swapTimer = Timer.periodic(_fadeDuration, (_) => _swapImage());
+  }
+
+  @override
+  void dispose() {
+    _swapTimer?.cancel();
+    super.dispose();
+  }
+
+  void _swapImage() {
+    if (!mounted || widget.imagePool.length < 2) return;
+    final options =
+        widget.imagePool.where((image) => image != _currentImageUrl).toList();
+    final nextImage = options[_random.nextInt(options.length)];
+    setState(() => _currentImageUrl = nextImage);
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Positioned(
-      top: top,
-      left: left,
-      right: right,
+      top: widget.top,
+      left: widget.left,
+      right: widget.right,
       child: ClipRRect(
         borderRadius: BorderRadius.circular(24),
-        child: Image.network(
-          imageUrl,
-          width: width,
-          height: height,
-          fit: BoxFit.cover,
-          errorBuilder: (context, _, __) => Container(
-            width: width,
-            height: height,
-            color: const Color(0xFFE4E4E4),
+        child: SizedBox(
+          width: widget.width,
+          height: widget.height,
+          child: AnimatedSwitcher(
+            duration: _fadeDuration,
+            switchInCurve: Curves.easeInOut,
+            switchOutCurve: Curves.easeInOut,
+            transitionBuilder: (child, animation) =>
+                FadeTransition(opacity: animation, child: child),
+            child: Image.network(
+              _currentImageUrl,
+              key: ValueKey(_currentImageUrl),
+              width: widget.width,
+              height: widget.height,
+              fit: BoxFit.cover,
+              errorBuilder: (context, _, __) => Container(
+                width: widget.width,
+                height: widget.height,
+                color: const Color(0xFFE4E4E4),
+              ),
+            ),
           ),
         ),
       ),
