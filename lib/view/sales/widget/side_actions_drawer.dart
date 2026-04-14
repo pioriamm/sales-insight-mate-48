@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../controller/sales_controller.dart';
 import '../../cost_catalog_page.dart';
+import '../../login_page.dart';
 
 class SideActionsDrawer extends StatelessWidget {
   const SideActionsDrawer({
@@ -62,6 +63,18 @@ class SideActionsDrawer extends StatelessWidget {
               onPressed: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const CostCatalogPage()),
+                );
+              },
+            ),
+            const SizedBox(height: 12),
+            _DrawerActionButton(
+              isCollapsed: isCollapsed,
+              icon: Icons.logout,
+              label: 'Sair do sistema',
+              onPressed: () {
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (_) => const LoginPage()),
+                  (route) => false,
                 );
               },
             ),
