@@ -7,6 +7,16 @@ class LoginPage extends StatelessWidget {
 
   static const _validUser = 'lem';
   static const _validPassword = 'jomimar';
+  static const _heroImages = <String>[
+    'https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?auto=format&fit=crop&w=700&q=80',
+    'https://images.unsplash.com/photo-1516627145497-ae6968895b74?auto=format&fit=crop&w=700&q=80',
+    'https://images.unsplash.com/photo-1472162072942-cd5147eb3902?auto=format&fit=crop&w=700&q=80',
+    'https://images.unsplash.com/photo-1503919545889-aef636e10ad4?auto=format&fit=crop&w=700&q=80',
+    'https://images.unsplash.com/photo-1520698857293-5d763dde010f?auto=format&fit=crop&w=700&q=80',
+    'https://images.unsplash.com/photo-1485546246426-74dc88dec4d9?auto=format&fit=crop&w=700&q=80',
+    'https://images.unsplash.com/photo-1526634332515-d56c5fd16991?auto=format&fit=crop&w=700&q=80',
+    'https://images.unsplash.com/photo-1472396961693-142e6e269027?auto=format&fit=crop&w=700&q=80',
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -14,6 +24,7 @@ class LoginPage extends StatelessWidget {
       backgroundColor: const Color(0xFFF1F1F1),
       body: Stack(
         children: [
+          const Positioned.fill(child: _HeroImageMosaic(images: _heroImages)),
           Column(
             children: [
               Container(
@@ -72,10 +83,10 @@ class LoginPage extends StatelessWidget {
                 decoration: BoxDecoration(
                   gradient: RadialGradient(
                     colors: [
-                      Colors.transparent,
-                      const Color(0xFF194C51).withOpacity(0.07),
+                      const Color(0xFFF1F1F1).withOpacity(0.2),
+                      const Color(0xFFF1F1F1).withOpacity(0.92),
                     ],
-                    radius: 1.2,
+                    radius: 1.15,
                   ),
                 ),
               ),
@@ -213,4 +224,108 @@ class LoginPage extends StatelessWidget {
       },
     );
   }
+}
+
+class _HeroImageMosaic extends StatelessWidget {
+  const _HeroImageMosaic({required this.images});
+
+  final List<String> images;
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: Row(
+        children: [
+          const SizedBox(width: 8),
+          _MosaicColumn(
+            tiles: [
+              _MosaicTileConfig(imageUrl: images[0], height: 340),
+              _MosaicTileConfig(imageUrl: images[1], height: 220),
+              _MosaicTileConfig(imageUrl: images[2], height: 190),
+            ],
+          ),
+          const SizedBox(width: 16),
+          _MosaicColumn(
+            topPadding: 130,
+            tiles: [
+              _MosaicTileConfig(imageUrl: images[3], height: 250),
+              _MosaicTileConfig(imageUrl: images[4], height: 270),
+            ],
+          ),
+          const Spacer(),
+          _MosaicColumn(
+            topPadding: 240,
+            tiles: [
+              _MosaicTileConfig(imageUrl: images[5], height: 220),
+              _MosaicTileConfig(imageUrl: images[6], height: 270),
+            ],
+          ),
+          const SizedBox(width: 16),
+          _MosaicColumn(
+            tiles: [
+              _MosaicTileConfig(imageUrl: images[7], height: 280),
+              _MosaicTileConfig(imageUrl: images[0], height: 240),
+              _MosaicTileConfig(imageUrl: images[1], height: 210),
+            ],
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
+    );
+  }
+}
+
+class _MosaicColumn extends StatelessWidget {
+  const _MosaicColumn({required this.tiles, this.topPadding = 0});
+
+  final List<_MosaicTileConfig> tiles;
+  final double topPadding;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(top: topPadding),
+      child: Column(
+        children: [
+          for (final tile in tiles) ...[
+            _MosaicImageTile(tile: tile),
+            const SizedBox(height: 14),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _MosaicImageTile extends StatelessWidget {
+  const _MosaicImageTile({required this.tile});
+
+  final _MosaicTileConfig tile;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(24),
+      child: SizedBox(
+        width: 220,
+        height: tile.height,
+        child: Image.network(
+          tile.imageUrl,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => Container(
+            color: const Color(0xFFE6E7EB),
+            alignment: Alignment.center,
+            child: const Icon(Icons.image_not_supported_outlined, size: 34),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MosaicTileConfig {
+  const _MosaicTileConfig({required this.imageUrl, required this.height});
+
+  final String imageUrl;
+  final double height;
 }
