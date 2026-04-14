@@ -5,7 +5,7 @@ import 'package:provider/provider.dart';
 import 'controller/sales_controller.dart';
 
 import 'firebase_options.dart';
-import 'view/sales_dashboard_page.dart';
+import 'view/login_page.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -35,7 +35,7 @@ class SalesInsightApp extends StatelessWidget {
         scaffoldBackgroundColor: const Color(0xFFF2F3F5),
         useMaterial3: true,
       ),
-      home: const SalesDashboardPage(),
+      home: const LoginPage(),
     );
   }
 }
