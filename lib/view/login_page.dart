@@ -352,7 +352,9 @@ class _AnimatedMosaicImage extends StatefulWidget {
 }
 
 class _AnimatedMosaicImageState extends State<_AnimatedMosaicImage> {
-  static const Duration _fadeDuration = Duration(seconds: 4);
+  static const Duration _transitionDuration = Duration(milliseconds: 900);
+  static const int _minSwapSeconds = 2;
+  static const int _maxSwapSeconds = 6;
 
   final Random _random = Random();
   Timer? _swapTimer;
@@ -362,7 +364,7 @@ class _AnimatedMosaicImageState extends State<_AnimatedMosaicImage> {
   void initState() {
     super.initState();
     _currentImageUrl = widget.initialImageUrl;
-    _swapTimer = Timer.periodic(_fadeDuration, (_) => _swapImage());
+    _scheduleNextSwap();
   }
 
   @override
@@ -377,6 +379,13 @@ class _AnimatedMosaicImageState extends State<_AnimatedMosaicImage> {
         widget.imagePool.where((image) => image != _currentImageUrl).toList();
     final nextImage = options[_random.nextInt(options.length)];
     setState(() => _currentImageUrl = nextImage);
+    _scheduleNextSwap();
+  }
+
+  void _scheduleNextSwap() {
+    final seconds = _minSwapSeconds + _random.nextInt(_maxSwapSeconds - _minSwapSeconds + 1);
+    _swapTimer?.cancel();
+    _swapTimer = Timer(Duration(seconds: seconds), _swapImage);
   }
 
   @override
@@ -391,7 +400,7 @@ class _AnimatedMosaicImageState extends State<_AnimatedMosaicImage> {
           width: widget.width,
           height: widget.height,
           child: AnimatedSwitcher(
-            duration: _fadeDuration,
+            duration: _transitionDuration,
             switchInCurve: Curves.easeInOut,
             switchOutCurve: Curves.easeInOut,
             transitionBuilder: (child, animation) =>
