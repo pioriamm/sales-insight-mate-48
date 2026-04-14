@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 
 class CarPartsMosaic extends StatelessWidget {
@@ -85,8 +88,8 @@ class CarPartsMosaic extends StatelessWidget {
             children: [
               for (final tile in _tiles)
                 _CarPartImageTile(
-                  imageUrl: tile.imageUrl,
-                  label: tile.label,
+                  initialTile: tile,
+                  allTiles: _tiles,
                 ),
             ],
           ),
@@ -96,14 +99,52 @@ class CarPartsMosaic extends StatelessWidget {
   }
 }
 
-class _CarPartImageTile extends StatelessWidget {
+class _CarPartImageTile extends StatefulWidget {
   const _CarPartImageTile({
-    required this.imageUrl,
-    required this.label,
+    required this.initialTile,
+    required this.allTiles,
   });
 
-  final String imageUrl;
-  final String label;
+  final _CarPartTileData initialTile;
+  final List<_CarPartTileData> allTiles;
+
+  @override
+  State<_CarPartImageTile> createState() => _CarPartImageTileState();
+}
+
+class _CarPartImageTileState extends State<_CarPartImageTile> {
+  static const Duration _fadeDuration = Duration(seconds: 5);
+
+  final Random _random = Random();
+  late _CarPartTileData _currentTile;
+  Timer? _swapTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentTile = widget.initialTile;
+    _swapTimer = Timer.periodic(_fadeDuration, (_) => _swapToRandomTile());
+  }
+
+  @override
+  void dispose() {
+    _swapTimer?.cancel();
+    super.dispose();
+  }
+
+  void _swapToRandomTile() {
+    if (!mounted || widget.allTiles.length < 2) {
+      return;
+    }
+
+    final options =
+        widget.allTiles.where((tile) => tile.imageUrl != _currentTile.imageUrl).toList();
+    final nextTile = options[_random.nextInt(options.length)];
+
+    setState(() {
+      _currentTile = nextTile;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -112,38 +153,47 @@ class _CarPartImageTile extends StatelessWidget {
       child: SizedBox(
         width: 210,
         height: 210,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            Image.network(
-              imageUrl,
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => Container(
-                color: const Color(0xFF194C51).withOpacity(0.08),
-                alignment: Alignment.center,
-                child: const Icon(Icons.broken_image_outlined),
-              ),
-            ),
-            Positioned(
-              left: 10,
-              right: 10,
-              bottom: 10,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.48),
-                  borderRadius: BorderRadius.circular(10),
+        child: AnimatedSwitcher(
+          duration: _fadeDuration,
+          switchInCurve: Curves.easeInOut,
+          switchOutCurve: Curves.easeInOut,
+          transitionBuilder: (child, animation) =>
+              FadeTransition(opacity: animation, child: child),
+          child: Stack(
+            key: ValueKey(_currentTile.imageUrl),
+            fit: StackFit.expand,
+            children: [
+              Image.network(
+                _currentTile.imageUrl,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Container(
+                  color: const Color(0xFF194C51).withOpacity(0.08),
+                  alignment: Alignment.center,
+                  child: const Icon(Icons.broken_image_outlined),
                 ),
-                child: Text(
-                  label,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
+              ),
+              Positioned(
+                left: 10,
+                right: 10,
+                bottom: 10,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.48),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    _currentTile.label,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
