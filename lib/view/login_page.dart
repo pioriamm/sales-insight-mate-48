@@ -5,8 +5,8 @@ import 'sales_dashboard_page.dart';
 class LoginPage extends StatelessWidget {
   const LoginPage({super.key});
 
-  static const _validUser = 'L&M Peças e Acessórios';
-  static const _validPassword = 'JOMIMAR';
+  static const _validUser = 'lem';
+  static const _validPassword = 'jomimar';
 
   @override
   Widget build(BuildContext context) {
@@ -27,14 +27,14 @@ class LoginPage extends StatelessWidget {
                       style: TextStyle(
                         fontWeight: FontWeight.w700,
                         fontSize: 22,
-                        color: Color(0xFFE60023),
+                        color: Color(0xFF194C51),
                       ),
                     ),
                     const Spacer(),
                     TextButton(
                       onPressed: () => _openLoginPopup(context),
                       style: TextButton.styleFrom(
-                        backgroundColor: const Color(0xFFE60023),
+                        backgroundColor: const Color(0xFF194C51),
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(
                           horizontal: 26,
@@ -121,7 +121,7 @@ class LoginPage extends StatelessWidget {
                           TextField(
                             controller: userController,
                             decoration: const InputDecoration(
-                              hintText: 'L&M Peças e Acessórios',
+                              hintText: 'Usuario',
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.all(Radius.circular(22)),
                               ),
@@ -134,7 +134,7 @@ class LoginPage extends StatelessWidget {
                             controller: passwordController,
                             obscureText: hidePassword,
                             decoration: InputDecoration(
-                              hintText: 'JOMIMAR',
+                              hintText: 'senha',
                               border: const OutlineInputBorder(
                                 borderRadius: BorderRadius.all(Radius.circular(22)),
                               ),
@@ -151,7 +151,7 @@ class LoginPage extends StatelessWidget {
                             width: double.infinity,
                             child: FilledButton(
                               style: FilledButton.styleFrom(
-                                backgroundColor: const Color(0xFFE60023),
+                                backgroundColor: const Color(0xFF194C51),
                                 foregroundColor: Colors.white,
                                 padding: const EdgeInsets.symmetric(vertical: 18),
                               ),
@@ -194,7 +194,7 @@ class LoginPage extends StatelessWidget {
                         child: const Padding(
                           padding: EdgeInsets.all(24),
                           child: Text(
-                            'Acesso restrito\n\nUse somente:\nUsuário: L&M Peças e Acessórios\nSenha: JOMIMAR',
+                            'Acesso restrito',
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               fontSize: 30,
