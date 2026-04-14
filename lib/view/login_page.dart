@@ -14,6 +14,7 @@ class LoginPage extends StatelessWidget {
       backgroundColor: const Color(0xFFF1F1F1),
       body: Stack(
         children: [
+          const Positioned.fill(child: _HeroImageMosaic()),
           Column(
             children: [
               Container(
@@ -62,6 +63,17 @@ class LoginPage extends StatelessWidget {
                     height: 1.1,
                   ),
                 ),
+              ),
+              const SizedBox(height: 14),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: const [
+                  _SlideDot(active: false),
+                  SizedBox(width: 10),
+                  _SlideDot(active: true),
+                  SizedBox(width: 10),
+                  _SlideDot(active: false),
+                ],
               ),
               const Spacer(),
             ],
@@ -211,6 +223,145 @@ class LoginPage extends StatelessWidget {
           },
         );
       },
+    );
+  }
+}
+
+class _HeroImageMosaic extends StatelessWidget {
+  const _HeroImageMosaic();
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final screenWidth = constraints.maxWidth;
+          final opacity = screenWidth < 1100 ? 0.45 : 0.9;
+
+          return Opacity(
+            opacity: opacity,
+            child: Stack(
+              children: const [
+                _MosaicImage(
+                  imageUrl:
+                      'https://images.unsplash.com/photo-1516627145497-ae6968895b74?auto=format&fit=crop&w=700&q=80',
+                  top: 170,
+                  left: -20,
+                  width: 210,
+                  height: 330,
+                ),
+                _MosaicImage(
+                  imageUrl:
+                      'https://images.unsplash.com/photo-1516627315008-c1f67bb83249?auto=format&fit=crop&w=700&q=80',
+                  top: 320,
+                  left: 185,
+                  width: 250,
+                  height: 350,
+                ),
+                _MosaicImage(
+                  imageUrl:
+                      'https://images.unsplash.com/photo-1478860409698-8707f313ee8b?auto=format&fit=crop&w=700&q=80',
+                  top: 435,
+                  left: 460,
+                  width: 250,
+                  height: 340,
+                ),
+                _MosaicImage(
+                  imageUrl:
+                      'https://images.unsplash.com/photo-1542816417-098367b6eb42?auto=format&fit=crop&w=700&q=80',
+                  top: 560,
+                  left: 720,
+                  width: 230,
+                  height: 260,
+                ),
+                _MosaicImage(
+                  imageUrl:
+                      'https://images.unsplash.com/photo-1516627436130-0b09740f14f6?auto=format&fit=crop&w=700&q=80',
+                  top: 320,
+                  right: 180,
+                  width: 240,
+                  height: 380,
+                ),
+                _MosaicImage(
+                  imageUrl:
+                      'https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?auto=format&fit=crop&w=700&q=80',
+                  top: 170,
+                  right: -30,
+                  width: 210,
+                  height: 330,
+                ),
+                _MosaicImage(
+                  imageUrl:
+                      'https://images.unsplash.com/photo-1516627145497-ae6968895b74?auto=format&fit=crop&w=700&q=80',
+                  top: 500,
+                  right: -15,
+                  width: 210,
+                  height: 280,
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _MosaicImage extends StatelessWidget {
+  const _MosaicImage({
+    required this.imageUrl,
+    required this.top,
+    this.left,
+    this.right,
+    required this.width,
+    required this.height,
+  });
+
+  final String imageUrl;
+  final double top;
+  final double? left;
+  final double? right;
+  final double width;
+  final double height;
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      top: top,
+      left: left,
+      right: right,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: Image.network(
+          imageUrl,
+          width: width,
+          height: height,
+          fit: BoxFit.cover,
+          errorBuilder: (context, _, __) => Container(
+            width: width,
+            height: height,
+            color: const Color(0xFFE4E4E4),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SlideDot extends StatelessWidget {
+  const _SlideDot({required this.active});
+
+  final bool active;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 10,
+      height: 10,
+      decoration: BoxDecoration(
+        color: active ? const Color(0xFF5B9D87) : const Color(0xFFD3D3D3),
+        shape: BoxShape.circle,
+      ),
     );
   }
 }
