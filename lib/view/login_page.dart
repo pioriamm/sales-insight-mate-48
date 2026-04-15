@@ -230,10 +230,10 @@ class _RestrictedAccessPanel extends StatelessWidget {
   const _RestrictedAccessPanel();
 
   static const List<String> _restrictedImages = [
-    'https://images.unsplash.com/photo-1577563908411-5077b6dc7624?auto=format&fit=crop&w=1200&q=80',
-    'https://images.unsplash.com/photo-1533106418989-88406c7cc8ca?auto=format&fit=crop&w=1200&q=80',
-    'https://images.unsplash.com/photo-1625047509168-a7026f36de04?auto=format&fit=crop&w=1200&q=80',
-    'https://images.unsplash.com/photo-1471478331149-c72f17e33c73?auto=format&fit=crop&w=1200&q=80',
+    'https://picsum.photos/id/1071/900/1200',
+    'https://picsum.photos/id/111/900/1200',
+    'https://picsum.photos/id/133/900/1200',
+    'https://picsum.photos/id/183/900/1200',
   ];
 
   @override
@@ -323,7 +323,19 @@ class _RestrictedImageCarouselState extends State<_RestrictedImageCarousel> {
         widget.imagePool[_index],
         key: ValueKey(widget.imagePool[_index]),
         fit: BoxFit.cover,
-        errorBuilder: (context, _, __) => Container(color: const Color(0xFFDDDDDD)),
+        loadingBuilder: (context, child, loadingProgress) {
+          if (loadingProgress == null) return child;
+          return Container(
+            color: const Color(0xFFDDDDDD),
+            alignment: Alignment.center,
+            child: const CircularProgressIndicator(strokeWidth: 2.4),
+          );
+        },
+        errorBuilder: (context, _, __) => Container(
+          color: const Color(0xFFDDDDDD),
+          alignment: Alignment.center,
+          child: const Icon(Icons.image_not_supported_outlined, size: 34),
+        ),
       ),
     );
   }
