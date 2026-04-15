@@ -29,56 +29,58 @@ class SideActionsDrawer extends StatelessWidget {
         color: const Color(0xFF194C51),
         borderRadius: BorderRadius.circular(20),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Align(
-              alignment: isCollapsed ? Alignment.center : Alignment.centerRight,
-              child: IconButton(
-                onPressed: onToggle,
-                icon: Icon(
-                  isCollapsed ? Icons.chevron_right : Icons.chevron_left,
-                  color: Colors.white,
+      child: SizedBox.expand(
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Align(
+                alignment: isCollapsed ? Alignment.center : Alignment.centerRight,
+                child: IconButton(
+                  onPressed: onToggle,
+                  icon: Icon(
+                    isCollapsed ? Icons.chevron_right : Icons.chevron_left,
+                    color: Colors.white,
+                  ),
+                  tooltip: isCollapsed ? 'Expandir menu' : 'Recolher menu',
                 ),
-                tooltip: isCollapsed ? 'Expandir menu' : 'Recolher menu',
               ),
-            ),
-            const SizedBox(height: 8),
-            _DrawerActionButton(
-              isCollapsed: isCollapsed,
-              icon: Icons.upload_file,
-              label: 'Importar vendas',
-              isLoading: controller.isLoadingSales,
-              onPressed: controller.isLoadingAny
-                  ? null
-                  : () => controller.pickSalesFile(context),
-            ),
-            const SizedBox(height: 12),
-            _DrawerActionButton(
-              isCollapsed: isCollapsed,
-              icon: Icons.list_alt,
-              label: 'Lista de custos',
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const CostCatalogPage()),
-                );
-              },
-            ),
-            const Spacer(),
-            _DrawerActionButton(
-              isCollapsed: isCollapsed,
-              icon: Icons.logout,
-              label: 'Sair do sistema',
-              onPressed: () {
-                Navigator.of(context).pushAndRemoveUntil(
-                  MaterialPageRoute(builder: (_) => const LoginPage()),
-                  (route) => false,
-                );
-              },
-            ),
-          ],
+              const SizedBox(height: 8),
+              _DrawerActionButton(
+                isCollapsed: isCollapsed,
+                icon: Icons.upload_file,
+                label: 'Importar vendas',
+                isLoading: controller.isLoadingSales,
+                onPressed: controller.isLoadingAny
+                    ? null
+                    : () => controller.pickSalesFile(context),
+              ),
+              const SizedBox(height: 12),
+              _DrawerActionButton(
+                isCollapsed: isCollapsed,
+                icon: Icons.list_alt,
+                label: 'Lista de custos',
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const CostCatalogPage()),
+                  );
+                },
+              ),
+              const Spacer(),
+              _DrawerActionButton(
+                isCollapsed: isCollapsed,
+                icon: Icons.logout,
+                label: 'Sair do sistema',
+                onPressed: () {
+                  Navigator.of(context).pushAndRemoveUntil(
+                    MaterialPageRoute(builder: (_) => const LoginPage()),
+                    (route) => false,
+                  );
+                },
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -113,9 +115,8 @@ class _DrawerActionButton extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 12),
         ),
         child: Row(
-          mainAxisAlignment: isCollapsed
-              ? MainAxisAlignment.center
-              : MainAxisAlignment.start,
+          mainAxisAlignment:
+              isCollapsed ? MainAxisAlignment.center : MainAxisAlignment.start,
           children: [
             if (isLoading)
               const SizedBox(
