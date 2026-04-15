@@ -66,7 +66,7 @@ class SideActionsDrawer extends StatelessWidget {
                 );
               },
             ),
-            const SizedBox(height: 12),
+            const Spacer(),
             _DrawerActionButton(
               isCollapsed: isCollapsed,
               icon: Icons.logout,
