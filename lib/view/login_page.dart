@@ -189,8 +189,28 @@ class LoginPage extends StatelessWidget {
                                 }
                                 Navigator.of(dialogContext).pop();
                                 Navigator.of(context).pushReplacement(
-                                  MaterialPageRoute(
-                                    builder: (_) => const SalesDashboardPage(),
+                                  PageRouteBuilder<void>(
+                                    pageBuilder: (_, __, ___) =>
+                                        const SalesDashboardPage(),
+                                    transitionDuration: const Duration(
+                                      milliseconds: 320,
+                                    ),
+                                    reverseTransitionDuration: const Duration(
+                                      milliseconds: 220,
+                                    ),
+                                    transitionsBuilder:
+                                        (
+                                          _,
+                                          animation,
+                                          __,
+                                          child,
+                                        ) => FadeTransition(
+                                          opacity: CurvedAnimation(
+                                            parent: animation,
+                                            curve: Curves.easeOutCubic,
+                                          ),
+                                          child: child,
+                                        ),
                                   ),
                                 );
                               },
