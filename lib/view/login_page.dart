@@ -10,6 +10,12 @@ class LoginPage extends StatelessWidget {
 
   static const _validUser = 'lem';
   static const _validPassword = 'jomimar';
+  static const List<String> _restrictedAccessImages = [
+    'https://images.unsplash.com/photo-1514316454349-750a7fd3da3a?auto=format&fit=crop&w=1200&q=80',
+    'https://images.unsplash.com/photo-1580273916550-e323be2ae537?auto=format&fit=crop&w=1200&q=80',
+    'https://images.unsplash.com/photo-1616788494672-ec7ca25fdda9?auto=format&fit=crop&w=1200&q=80',
+    'https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=1200&q=80',
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -513,6 +519,100 @@ class _AnimatedMosaicImageState extends State<_AnimatedMosaicImage> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _FadingLoginImages extends StatefulWidget {
+  const _FadingLoginImages({required this.images});
+
+  final List<String> images;
+
+  @override
+  State<_FadingLoginImages> createState() => _FadingLoginImagesState();
+}
+
+class _FadingLoginImagesState extends State<_FadingLoginImages> {
+  static const Duration _fadeDuration = Duration(milliseconds: 900);
+  static const Duration _swapDuration = Duration(seconds: 4);
+
+  Timer? _timer;
+  int _currentIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.images.length > 1) {
+      _timer = Timer.periodic(_swapDuration, (_) {
+        if (!mounted) return;
+        setState(() => _currentIndex = (_currentIndex + 1) % widget.images.length);
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final imageUrl = widget.images[_currentIndex];
+
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        AnimatedSwitcher(
+          duration: _fadeDuration,
+          switchInCurve: Curves.easeInOut,
+          switchOutCurve: Curves.easeInOut,
+          transitionBuilder: (child, animation) =>
+              FadeTransition(opacity: animation, child: child),
+          child: Image.network(
+            imageUrl,
+            key: ValueKey(imageUrl),
+            fit: BoxFit.cover,
+            errorBuilder: (context, _, __) => Container(
+              color: const Color(0xFFE4E4E4),
+            ),
+          ),
+        ),
+        Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.bottomCenter,
+              end: Alignment.topCenter,
+              colors: [
+                Colors.black.withOpacity(0.45),
+                Colors.black.withOpacity(0.15),
+                Colors.transparent,
+              ],
+            ),
+          ),
+        ),
+        const Align(
+          alignment: Alignment.bottomCenter,
+          child: Padding(
+            padding: EdgeInsets.all(24),
+            child: Text(
+              'Acesso restrito',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 30,
+                fontWeight: FontWeight.w700,
+                shadows: [
+                  Shadow(
+                    color: Colors.black54,
+                    blurRadius: 10,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
