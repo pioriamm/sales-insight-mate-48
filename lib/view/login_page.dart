@@ -205,18 +205,8 @@ class LoginPage extends StatelessWidget {
                           color: const Color(0xFFF5F5F5),
                           borderRadius: BorderRadius.circular(34),
                         ),
-                        alignment: Alignment.center,
-                        child: const Padding(
-                          padding: EdgeInsets.all(24),
-                          child: Text(
-                            'Acesso restrito',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 30,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
+                        padding: const EdgeInsets.all(18),
+                        child: const _RestrictedAccessPanel(),
                       ),
                     ),
                   ],
@@ -226,6 +216,109 @@ class LoginPage extends StatelessWidget {
           },
         );
       },
+    );
+  }
+}
+
+class _RestrictedAccessPanel extends StatelessWidget {
+  const _RestrictedAccessPanel();
+
+  static const List<String> _restrictedImages = [
+    'https://images.unsplash.com/photo-1577563908411-5077b6dc7624?auto=format&fit=crop&w=1200&q=80',
+    'https://images.unsplash.com/photo-1533106418989-88406c7cc8ca?auto=format&fit=crop&w=1200&q=80',
+    'https://images.unsplash.com/photo-1625047509168-a7026f36de04?auto=format&fit=crop&w=1200&q=80',
+    'https://images.unsplash.com/photo-1471478331149-c72f17e33c73?auto=format&fit=crop&w=1200&q=80',
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(24),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          const _RestrictedImageCarousel(imagePool: _restrictedImages),
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.black.withOpacity(0.15),
+                  Colors.black.withOpacity(0.45),
+                ],
+              ),
+            ),
+          ),
+          const Center(
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 20),
+              child: Text(
+                'Acesso restrito',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 34,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RestrictedImageCarousel extends StatefulWidget {
+  const _RestrictedImageCarousel({required this.imagePool});
+
+  final List<String> imagePool;
+
+  @override
+  State<_RestrictedImageCarousel> createState() => _RestrictedImageCarouselState();
+}
+
+class _RestrictedImageCarouselState extends State<_RestrictedImageCarousel> {
+  static const Duration _transitionDuration = Duration(milliseconds: 950);
+  static const Duration _changeInterval = Duration(seconds: 3);
+
+  Timer? _timer;
+  int _index = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.imagePool.length > 1) {
+      _timer = Timer.periodic(_changeInterval, (_) {
+        if (!mounted) return;
+        setState(() {
+          _index = (_index + 1) % widget.imagePool.length;
+        });
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedSwitcher(
+      duration: _transitionDuration,
+      switchInCurve: Curves.easeInOut,
+      switchOutCurve: Curves.easeInOut,
+      transitionBuilder: (child, animation) =>
+          FadeTransition(opacity: animation, child: child),
+      child: Image.network(
+        widget.imagePool[_index],
+        key: ValueKey(widget.imagePool[_index]),
+        fit: BoxFit.cover,
+        errorBuilder: (context, _, __) => Container(color: const Color(0xFFDDDDDD)),
+      ),
     );
   }
 }
