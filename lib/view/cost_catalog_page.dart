@@ -86,20 +86,11 @@ class _CostCatalogPageView extends StatelessWidget {
                               label: const Text('Importar JSON'),
                             ),
                             const SizedBox(width: 8),
-                            OutlinedButton.icon(
-                              onPressed: sortedItems.isEmpty
-                                  ? null
-                                  : () => _confirmClearCatalog(context),
-                              style: OutlinedButton.styleFrom(
-                                foregroundColor: Colors.red,
-                                side: const BorderSide(color: Colors.red),
-                              ),
-                              icon: const Icon(Icons.delete_sweep_outlined),
-                              label: const Text('Limpar base'),
-                            ),
+
                           ],
                         ),
                       ),
+                      SizedBox(height: 50,),
                       Padding(
                         padding: EdgeInsets.symmetric(
                           horizontal: MediaQuery.sizeOf(context).width * 0.12,
@@ -126,15 +117,25 @@ class _CostCatalogPageView extends StatelessWidget {
                               ),
                             ),
                             const SizedBox(width: 8),
-                            FilledButton.icon(
+                            FloatingActionButton.extended(
+                              backgroundColor: const Color(0xFF194C51),
                               onPressed: () => _openEditDialog(context),
-                              icon: const Icon(Icons.add),
-                              label: const Text('Adicionar'),
+                              icon: const Icon(Icons.add, color: Colors.white,),
+                              label: const Text('Adicionar',style: TextStyle(color: Colors.white),),
                             ),
+                            SizedBox(width: 10,),
+                            FloatingActionButton.extended(
+                              backgroundColor: Colors.red,
+                              onPressed: () => sortedItems.isEmpty
+                                  ? null
+                                  : () => _confirmClearCatalog(context),
+                              icon: const Icon(Icons.delete_sweep_outlined, color: Colors.white,),
+                              label: const Text('Limpar base', style: TextStyle(color: Colors.white),),
+                            )
                           ],
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 50),
                       Expanded(
                         child: Padding(
                           padding: EdgeInsets.symmetric(
