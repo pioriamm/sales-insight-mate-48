@@ -1,104 +1,142 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:sales_insight_mate/view/sales/widget/side_actions_drawer.dart';
 
 import '../controller/cost_catalog_page_controller.dart';
 import '../controller/sales_controller.dart';
 import '../models/cost_catalog_item.dart';
 
-class CostCatalogPage extends StatelessWidget {
+class CostCatalogPage extends StatefulWidget {
   const CostCatalogPage({super.key});
+
+  @override
+  State<CostCatalogPage> createState() => _CostCatalogPageState();
+}
+
+class _CostCatalogPageState extends State<CostCatalogPage> {
+  bool _isDrawerCollapsed = false;
 
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
       create: (_) => CostCatalogPageController(),
-      child: const _CostCatalogPageView(),
+      child: _CostCatalogPageView(
+        isDrawerCollapsed: _isDrawerCollapsed,
+        onToggleDrawer: () => setState(
+          () => _isDrawerCollapsed = !_isDrawerCollapsed,
+        ),
+      ),
     );
   }
 }
 
 class _CostCatalogPageView extends StatelessWidget {
-  const _CostCatalogPageView();
+  const _CostCatalogPageView({
+    required this.isDrawerCollapsed,
+    required this.onToggleDrawer,
+  });
+
+  final bool isDrawerCollapsed;
+  final VoidCallback onToggleDrawer;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Banco de custos'),
-      ),
       body: Consumer2<SalesController, CostCatalogPageController>(
         builder: (context, salesController, pageController, _) {
-          final sortedItems = pageController.getSortedItems(salesController.catalogItems);
+          final sortedItems =
+              pageController.getSortedItems(salesController.catalogItems);
           final pageData = pageController.getPageData(sortedItems);
 
-          return Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(12),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    ElevatedButton.icon(
-                      onPressed: () async {
-                        final int insertedCount = await salesController.importCatalogFromJson();
-                        if (!context.mounted) return;
-                        final String message = insertedCount == 1
-                            ? '1 item importado do JSON.'
-                            : '$insertedCount itens importados do JSON.';
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text(message)),
-                        );
-                      },
-                      icon: const Icon(Icons.file_upload_outlined),
-                      label: const Text('Importar JSON'),
-                    ),
-                    const SizedBox(width: 8),
-                    OutlinedButton.icon(
-                      onPressed: sortedItems.isEmpty
-                          ? null
-                          : () => _confirmClearCatalog(context),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.red,
-                        side: const BorderSide(color: Colors.red),
+          return Padding(
+            padding: const EdgeInsets.all(20),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SideActionsDrawer(
+                  controller: salesController,
+                  isCollapsed: isDrawerCollapsed,
+                  onToggle: onToggleDrawer,
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    children: [
+                      const _CatalogHeroPanel(),
+                      const SizedBox(height: 20),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            ElevatedButton.icon(
+                              onPressed: () async {
+                                final int insertedCount =
+                                    await salesController
+                                        .importCatalogFromJson();
+                                if (!context.mounted) return;
+                                final String message = insertedCount == 1
+                                    ? '1 item importado do JSON.'
+                                    : '$insertedCount itens importados do JSON.';
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text(message)),
+                                );
+                              },
+                              icon: const Icon(Icons.file_upload_outlined),
+                              label: const Text('Importar JSON'),
+                            ),
+                            const SizedBox(width: 8),
+                            OutlinedButton.icon(
+                              onPressed: sortedItems.isEmpty
+                                  ? null
+                                  : () => _confirmClearCatalog(context),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: Colors.red,
+                                side: const BorderSide(color: Colors.red),
+                              ),
+                              icon: const Icon(Icons.delete_sweep_outlined),
+                              label: const Text('Limpar base'),
+                            ),
+                          ],
+                        ),
                       ),
-                      icon: const Icon(Icons.delete_sweep_outlined),
-                      label: const Text('Limpar base'),
-                    ),
-                  ],
-                ),
-              ),
-              Padding(
-                padding: EdgeInsets.symmetric(
-                  horizontal: MediaQuery.sizeOf(context).width * 0.20,
-                ),
-                child: TextField(
-                  controller: pageController.searchController,
-                  decoration: InputDecoration(
-                    hintText: 'Pesquisar item da lista',
-                    prefixIcon: const Icon(Icons.search),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(50),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(50),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(50),
-                    ),
+                      Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: MediaQuery.sizeOf(context).width * 0.12,
+                        ),
+                        child: TextField(
+                          controller: pageController.searchController,
+                          decoration: InputDecoration(
+                            hintText: 'Pesquisar item da lista',
+                            prefixIcon: const Icon(Icons.search),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(50),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(50),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(50),
+                            ),
+                          ),
+                          onChanged: pageController.onSearchChanged,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Expanded(
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: MediaQuery.sizeOf(context).width * 0.12,
+                          ),
+                          child:
+                              _buildCatalogList(context, pageData, pageController),
+                        ),
+                      ),
+                    ],
                   ),
-                  onChanged: pageController.onSearchChanged,
                 ),
-              ),
-              const SizedBox(height: 12),
-              Expanded(
-                child: Padding(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: MediaQuery.sizeOf(context).width * 0.20,
-                  ),
-                  child: _buildCatalogList(context, pageData, pageController),
-                ),
-              ),
-            ],
+              ],
+            ),
           );
         },
       ),
@@ -131,7 +169,8 @@ class _CostCatalogPageView extends StatelessWidget {
             separatorBuilder: (_, __) => const Divider(height: 1),
             itemBuilder: (context, index) {
               final item = pageData.pagedItems[index];
-              final TextStyle? itemTextStyle = Theme.of(context).textTheme.titleMedium;
+              final TextStyle? itemTextStyle =
+                  Theme.of(context).textTheme.titleMedium;
 
               return ListTile(
                 title: Text(
@@ -168,7 +207,9 @@ class _CostCatalogPageView extends StatelessWidget {
             ),
             const SizedBox(width: 8),
             IconButton(
-              onPressed: pageData.currentPage == 0 ? null : pageController.goToPreviousPage,
+              onPressed: pageData.currentPage == 0
+                  ? null
+                  : pageController.goToPreviousPage,
               icon: const Icon(Icons.chevron_left),
               tooltip: 'Página anterior',
             ),
@@ -249,7 +290,8 @@ class _CostCatalogPageView extends StatelessWidget {
 
   Future<void> _openEditDialog(BuildContext context, {CostCatalogItem? item}) async {
     final descricaoCtrl = TextEditingController(text: item?.descricao ?? '');
-    final custoCtrl = TextEditingController(text: item == null ? '' : item.custo.toStringAsFixed(2));
+    final custoCtrl =
+        TextEditingController(text: item == null ? '' : item.custo.toStringAsFixed(2));
 
     final saved = await showDialog<bool>(
       context: context,
@@ -311,5 +353,37 @@ class _CostCatalogPageView extends StatelessWidget {
         const SnackBar(content: Text('Lista de custos atualizada com sucesso.')),
       );
     }
+  }
+}
+
+class _CatalogHeroPanel extends StatelessWidget {
+  const _CatalogHeroPanel();
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      child: Container(
+        padding: const EdgeInsets.all(28),
+        decoration: BoxDecoration(
+          color: const Color(0xFF194C51),
+          borderRadius: BorderRadius.circular(24),
+        ),
+        child: const Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Cadastro de custo',
+              style: TextStyle(fontSize: 36, color: Colors.white),
+            ),
+            SizedBox(height: 8),
+            Text(
+              'Gerencie e mantenha a base de custos atualizada.',
+              style: TextStyle(color: Colors.white70),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
