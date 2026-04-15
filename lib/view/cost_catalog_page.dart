@@ -104,22 +104,34 @@ class _CostCatalogPageView extends StatelessWidget {
                         padding: EdgeInsets.symmetric(
                           horizontal: MediaQuery.sizeOf(context).width * 0.12,
                         ),
-                        child: TextField(
-                          controller: pageController.searchController,
-                          decoration: InputDecoration(
-                            hintText: 'Pesquisar item da lista',
-                            prefixIcon: const Icon(Icons.search),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(50),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: pageController.searchController,
+                                decoration: InputDecoration(
+                                  hintText: 'Pesquisar item da lista',
+                                  prefixIcon: const Icon(Icons.search),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(50),
+                                  ),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(50),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(50),
+                                  ),
+                                ),
+                                onChanged: pageController.onSearchChanged,
+                              ),
                             ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(50),
+                            const SizedBox(width: 8),
+                            FilledButton.icon(
+                              onPressed: () => _openEditDialog(context),
+                              icon: const Icon(Icons.add),
+                              label: const Text('Adicionar'),
                             ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(50),
-                            ),
-                          ),
-                          onChanged: pageController.onSearchChanged,
+                          ],
                         ),
                       ),
                       const SizedBox(height: 12),
@@ -139,13 +151,6 @@ class _CostCatalogPageView extends StatelessWidget {
             ),
           );
         },
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _openEditDialog(context),
-        backgroundColor: Theme.of(context).colorScheme.primary,
-        foregroundColor: Colors.white,
-        shape: const CircleBorder(),
-        child: const Icon(Icons.add),
       ),
     );
   }
