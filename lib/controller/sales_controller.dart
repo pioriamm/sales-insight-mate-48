@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:file_picker/file_picker.dart';
+
+import '../utils/file_bytes_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -154,13 +156,7 @@ class SalesController extends ChangeNotifier {
   }
 
   Future<void> pickCostFile(BuildContext context) async {
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: ['xlsx', 'xls'],
-      withData: true,
-    );
-
-    final bytes = result?.files.single.bytes;
+    final bytes = await pickFileBytes(allowedExtensions: ['xlsx', 'xls']);
     if (bytes == null) return;
 
     _startSmoothProgress(cost: true, sales: false, message: 'Lendo planilha de custos...');
@@ -184,13 +180,7 @@ class SalesController extends ChangeNotifier {
   }
 
   Future<void> pickSalesFile(BuildContext context) async {
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: ['xlsx', 'xls'],
-      withData: true,
-    );
-
-    final bytes = result?.files.single.bytes;
+    final bytes = await pickFileBytes(allowedExtensions: ['xlsx', 'xls']);
     if (bytes == null) return;
 
     _startSmoothProgress(cost: false, sales: true, message: 'Lendo planilha de vendas...');
@@ -371,13 +361,7 @@ class SalesController extends ChangeNotifier {
     String? payload = jsonText;
 
     if (payload == null) {
-      final result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['json'],
-        withData: true,
-      );
-
-      final bytes = result?.files.single.bytes;
+      final bytes = await pickFileBytes(allowedExtensions: ['json']);
       if (bytes == null) return 0;
       payload = utf8.decode(bytes);
     }
