@@ -407,19 +407,26 @@ int _findHeaderRowIndex(List<List<Object?>> rows) {
 }
 
 List<List<Object?>> _sheetRowsFromBytes(Uint8List bytes) {
-  try {
-    final excel = ex.Excel.decodeBytes(bytes);
-    if (excel.tables.isNotEmpty) {
-      final sheet = excel.tables.values.first;
-      final rows = sheet?.rows ?? const <List<ex.Data?>>[];
-      return rows
-          .map((row) => row.map((cell) => cell?.value).toList(growable: false))
-          .toList(growable: false);
+  if (_looksLikeZip(bytes)) {
+    try {
+      final excel = ex.Excel.decodeBytes(bytes);
+      if (excel.tables.isNotEmpty) {
+        final sheet = excel.tables.values.first;
+        final rows = sheet?.rows ?? const <List<ex.Data?>>[];
+        return rows
+            .map((row) => row.map((cell) => cell?.value).toList(growable: false))
+            .toList(growable: false);
+      }
+    } catch (_) {
+      // fallback para CSV/TXT delimitado.
     }
-  } catch (_) {
-    // fallback para CSV/TXT delimitado.
   }
   return _parseDelimitedRows(bytes);
+}
+
+bool _looksLikeZip(Uint8List bytes) {
+  if (bytes.length < 4) return false;
+  return bytes[0] == 0x50 && bytes[1] == 0x4B;
 }
 
 List<List<Object?>> _parseDelimitedRows(Uint8List bytes) {
