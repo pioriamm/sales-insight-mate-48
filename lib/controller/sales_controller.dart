@@ -156,7 +156,7 @@ class SalesController extends ChangeNotifier {
   }
 
   Future<void> pickCostFile(BuildContext context) async {
-    final bytes = await pickFileBytes(allowedExtensions: ['xlsx', 'xls']);
+    final bytes = await pickFileBytes(allowedExtensions: ['xlsx', 'xls', 'csv']);
     if (bytes == null) return;
 
     _startSmoothProgress(cost: true, sales: false, message: 'Lendo planilha de custos...');
@@ -180,7 +180,7 @@ class SalesController extends ChangeNotifier {
   }
 
   Future<void> pickSalesFile(BuildContext context) async {
-    final bytes = await pickFileBytes(allowedExtensions: ['xlsx', 'xls']);
+    final bytes = await pickFileBytes(allowedExtensions: ['xlsx', 'xls', 'csv']);
     if (bytes == null) return;
 
     _startSmoothProgress(cost: false, sales: true, message: 'Lendo planilha de vendas...');
