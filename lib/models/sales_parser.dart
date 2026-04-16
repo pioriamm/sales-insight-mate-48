@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'dart:typed_data';
+import 'dart:convert';
 
 import 'package:excel/excel.dart' as ex;
 import 'package:intl/intl.dart';
@@ -165,13 +166,11 @@ List<Map<String, Object>> applyCostsAndSortSalesDto(Map<String, dynamic> payload
 }
 
 List<SaleRow> parseSalesFile(Uint8List bytes) {
-  final excel = ex.Excel.decodeBytes(bytes);
-  final sheet = excel.tables.values.first;
-  final rows = sheet?.rows ?? [];
+  final rows = _sheetRowsFromBytes(bytes);
   if (rows.isEmpty) return [];
 
   final headerRowIndex = _findHeaderRowIndex(rows);
-  final header = rows[headerRowIndex].map((e) => _cellText(e?.value)).toList();
+  final header = rows[headerRowIndex].map(_cellText).toList();
 
   int idx(String key, [String? alt1, String? alt2, String? alt3]) {
     final normalized = header.map(_normalize).toList();
@@ -191,13 +190,13 @@ List<SaleRow> parseSalesFile(Uint8List bytes) {
   final iTotal = idx('Total (BRL)');
   final iTitulo = idx('Título do anúncio', 'Titulo do anúncio', 'Título');
 
-  String valueAt(List<ex.Data?> row, int i) => i >= 0 && i < row.length ? _cellText(row[i]?.value) : '';
-  Object? rawAt(List<ex.Data?> row, int i) => i >= 0 && i < row.length ? row[i]?.value : null;
+  String valueAt(List<Object?> row, int i) => i >= 0 && i < row.length ? _cellText(row[i]) : '';
+  Object? rawAt(List<Object?> row, int i) => i >= 0 && i < row.length ? row[i] : null;
 
   final sales = <SaleRow>[];
   for (var i = headerRowIndex + 1; i < rows.length; i++) {
     final row = rows[i];
-    if (row.every((c) => c == null || _cellText(c.value).trim().isEmpty)) continue;
+    if (row.every((c) => _cellText(c).trim().isEmpty)) continue;
 
     sales.add(SaleRow(
       id: '$i',
@@ -217,12 +216,10 @@ List<SaleRow> parseSalesFile(Uint8List bytes) {
 }
 
 List<CostItem> parseCostFile(Uint8List bytes) {
-  final excel = ex.Excel.decodeBytes(bytes);
-  final sheet = excel.tables.values.first;
-  final rows = sheet?.rows ?? [];
+  final rows = _sheetRowsFromBytes(bytes);
   if (rows.isEmpty) return [];
 
-  final header = rows.first.map((e) => (e?.value ?? '').toString()).toList();
+  final header = rows.first.map(_cellText).toList();
   int pick(List<String> options) {
     final normalized = header.map(_normalize).toList();
     for (final o in options) {
@@ -236,17 +233,17 @@ List<CostItem> parseCostFile(Uint8List bytes) {
   final iDesc = pick(['descricao', 'descrição']);
   final iCost = pick(['custo']);
 
-  String valueAt(List<ex.Data?> row, int i) => i >= 0 && i < row.length ? (row[i]?.value ?? '').toString() : '';
+  String valueAt(List<Object?> row, int i) => i >= 0 && i < row.length ? _cellText(row[i]) : '';
 
   final items = <CostItem>[];
   for (var i = 1; i < rows.length; i++) {
     final row = rows[i];
-    if (row.every((c) => c == null || c.value == null || c.value.toString().trim().isEmpty)) continue;
+    if (row.every((c) => _cellText(c).trim().isEmpty)) continue;
     double cost = _parseNumber(valueAt(row, iCost));
 
     if (cost == 0) {
       for (var col = max(iDesc + 1, 0); col < row.length; col++) {
-        final parsed = _parseNumber(row[col]?.value);
+        final parsed = _parseNumber(row[col]);
         if (parsed != 0) {
           cost = parsed;
           break;
@@ -395,9 +392,9 @@ String _normalize(String s) => s
 
 List<String> _keywords(String s) => s.split(RegExp(r'\s+')).where((w) => w.length > 2).toList();
 
-int _findHeaderRowIndex(List<List<ex.Data?>> rows) {
+int _findHeaderRowIndex(List<List<Object?>> rows) {
   for (var i = 0; i < rows.length; i++) {
-    final line = rows[i].map((c) => _normalize(_cellText(c?.value))).toList(growable: false);
+    final line = rows[i].map((c) => _normalize(_cellText(c))).toList(growable: false);
     final score = <bool>[
       line.any((c) => c.contains('venda')),
       line.any((c) => c.contains('data')),
@@ -407,6 +404,94 @@ int _findHeaderRowIndex(List<List<ex.Data?>> rows) {
     if (score >= 3) return i;
   }
   return 0;
+}
+
+List<List<Object?>> _sheetRowsFromBytes(Uint8List bytes) {
+  try {
+    final excel = ex.Excel.decodeBytes(bytes);
+    if (excel.tables.isNotEmpty) {
+      final sheet = excel.tables.values.first;
+      final rows = sheet?.rows ?? const <List<ex.Data?>>[];
+      return rows
+          .map((row) => row.map((cell) => cell?.value).toList(growable: false))
+          .toList(growable: false);
+    }
+  } catch (_) {
+    // fallback para CSV/TXT delimitado.
+  }
+  return _parseDelimitedRows(bytes);
+}
+
+List<List<Object?>> _parseDelimitedRows(Uint8List bytes) {
+  final text = _decodeText(bytes);
+  if (text.trim().isEmpty) return const [];
+
+  final lines = const LineSplitter()
+      .convert(text.replaceAll('\r\n', '\n').replaceAll('\r', '\n'))
+      .where((line) => line.trim().isNotEmpty)
+      .toList(growable: false);
+  if (lines.isEmpty) return const [];
+
+  final delimiter = _guessDelimiter(lines);
+  return lines.map((line) => _splitDelimitedLine(line, delimiter)).toList(growable: false);
+}
+
+String _decodeText(Uint8List bytes) {
+  try {
+    return utf8.decode(bytes);
+  } catch (_) {
+    return latin1.decode(bytes);
+  }
+}
+
+String _guessDelimiter(List<String> lines) {
+  final candidates = [';', ',', '\t'];
+  var best = ';';
+  var bestScore = -1;
+
+  for (final candidate in candidates) {
+    var score = 0;
+    for (final line in lines.take(8)) {
+      score += candidate.allMatches(line).length;
+    }
+    if (score > bestScore) {
+      best = candidate;
+      bestScore = score;
+    }
+  }
+  return best;
+}
+
+List<Object?> _splitDelimitedLine(String line, String delimiter) {
+  final out = <Object?>[];
+  final buffer = StringBuffer();
+  var inQuotes = false;
+
+  for (var i = 0; i < line.length; i++) {
+    final ch = line[i];
+    final next = i + 1 < line.length ? line[i + 1] : '';
+
+    if (ch == '"') {
+      if (inQuotes && next == '"') {
+        buffer.write('"');
+        i++;
+      } else {
+        inQuotes = !inQuotes;
+      }
+      continue;
+    }
+
+    if (!inQuotes && ch == delimiter) {
+      out.add(buffer.toString().trim());
+      buffer.clear();
+      continue;
+    }
+
+    buffer.write(ch);
+  }
+
+  out.add(buffer.toString().trim());
+  return out;
 }
 
 String _cellText(Object? value) {
